@@ -15,6 +15,9 @@
 ==============================================================================
 """
 
+import sys
+import os
+
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
@@ -26,47 +29,17 @@ from kivy.properties import StringProperty, BooleanProperty, ListProperty
 from kivy.metrics import dp
 from kivy.clock import Clock
 
+# Import AI Triage module
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
-# === TỪ KHÓA PHÂN LOẠI TRIỆU CHỨNG ===
-
-# RED - Nguy hiểm, cần cấp cứu ngay
-RED_KEYWORDS = [
-    "kho tho", "khó thở",
-    "sot cao", "sốt cao",
-    "co giat", "co giật",
-    "dau nguc", "đau ngực",
-    "bat tinh", "bất tỉnh",
-    "xuat huyet", "xuất huyết",
-    "ngat", "ngất",
-    "sot 40", "sốt 40",
-    "sot 41", "sốt 41",
-]
-
-# YELLOW - Cần theo dõi, hỏi thêm
-YELLOW_KEYWORDS = [
-    "met", "mệt",
-    "dau dau", "đau đầu",
-    "buon non", "buồn nôn",
-    "chong mat", "chóng mặt",
-    "mat ngu", "mất ngủ",
-    "phat ban", "phát ban",
-    "dau bung", "đau bụng",
-    "tieu chay", "tiêu chảy",
-]
-
-# GREEN - Bình thường
-GREEN_KEYWORDS = [
-    "tot", "tốt",
-    "binh thuong", "bình thường",
-    "on", "ổn",
-    "khoe", "khỏe",
-    "ok", "good",
-    "duoc", "được",
-]
+from ai_core.triage import classify_symptoms, get_response_text
 
 
 class ChatBubble(MDCard):
     """Widget hiển thị 1 tin nhắn trong chat."""
+
     message_text = StringProperty("")
     is_user = BooleanProperty(False)
     bubble_color = ListProperty([0.9, 0.9, 0.9, 1])
@@ -167,89 +140,70 @@ class ChatbotScreen(MDScreen):
 
     def _process_user_input(self, text: str):
         """
-        Phân tích input của user và phân loại triệu chứng.
+        Gọi OpenAI API để phân loại triệu chứng.
+        Thay thế keyword matching cũ bằng AI full.
         """
-        text_lower = text.lower()
+        # Gọi AI triage
+        triage_result = classify_symptoms(text)
 
-        # === CHECK RED (nguy hiểm) ===
-        is_red = False
-        for kw in RED_KEYWORDS:
-            if kw in text_lower:
-                is_red = True
-                break
+        level = triage_result.get("level", "YELLOW")
 
-        if is_red:
-            self._respond_red(text)
-            return
+        # Xác định hành động dựa trên level
+        if level == "RED":
+            self._respond_red(triage_result)
+        elif level == "YELLOW":
+            self._respond_yellow(triage_result)
+        else:  # GREEN
+            self._respond_green(triage_result)
 
-        # === CHECK YELLOW (cần theo dõi) ===
-        is_yellow = False
-        for kw in YELLOW_KEYWORDS:
-            if kw in text_lower:
-                is_yellow = True
-                break
-
-        if is_yellow:
-            self._respond_yellow(text)
-            return
-
-        # === CHECK GREEN (bình thường) ===
-        is_green = False
-        for kw in GREEN_KEYWORDS:
-            if kw in text_lower:
-                is_green = True
-                break
-
-        if is_green:
-            self._respond_green()
-            return
-
-        # === DEFAULT: Không nhận diện được ===
-        self.receive_message(
-            "Cảm ơn bạn đã chia sẻ. Bạn có thể mô tả chi tiết hơn "
-            "triệu chứng của mình được không?\n\n"
-            "Ví dụ: mệt mỏi, đau đầu, buồn nôn, khó thở..."
-        )
-
-    def _respond_green(self):
-        """Phản hồi khi user bình thường."""
+    def _respond_green(self, triage_result: dict):
+        """Phản hồi khi user bình thường (GREEN)."""
         self.show_emergency_button = False
-        self.receive_message(
+
+        # Lấy recommendation từ AI
+        recommendation = triage_result.get(
+            "recommendation",
             "Tuyệt vời! Rất vui khi bạn cảm thấy tốt.\n"
-            "Hãy tiếp tục duy trì uống thuốc đúng giờ nhé!\n\n"
-            "Nếu có bất kỳ thay đổi nào, hãy báo cho tôi biết.",
-            level="normal"
+            "Hãy tiếp tục duy trì uống thuốc đúng giờ nhé!",
         )
 
-    def _respond_yellow(self, text: str):
+        self.receive_message(recommendation, level="normal")
+
+    def _respond_yellow(self, triage_result: dict):
         """Phản hồi khi triệu chứng cần theo dõi (YELLOW)."""
         self.show_emergency_button = False
-        self.receive_message(
+
+        # Lấy recommendation từ AI
+        recommendation = triage_result.get(
+            "recommendation",
             "Tôi ghi nhận triệu chứng của bạn.\n\n"
             "Bạn có thể đánh giá mức độ từ 1 đến 10 không?\n"
             "  - 1-3: Nhẹ, có thể theo dõi tại nhà\n"
             "  - 4-6: Trung bình, nên liên hệ bác sĩ\n"
-            "  - 7-10: Nặng, cần khám ngay\n\n"
-            "Nếu tình trạng nặng hơn, đừng ngại ngại "
-            "nhấn nút 'Gọi cấp cứu' bên dưới.",
-            level="warning"
+            "  - 7-10: Nặng, cần khám ngay",
         )
 
-    def _respond_red(self, text: str):
+        self.receive_message(recommendation, level="warning")
+
+    def _respond_red(self, triage_result: dict):
         """
         Phản hồi khi triệu chứng NGUY HIỂM (RED).
         Hiện nút gọi cấp cứu.
         """
         self.show_emergency_button = True
-        self.receive_message(
+
+        # Lấy recommendation từ AI
+        recommendation = triage_result.get(
+            "recommendation",
             "CẢNH BÁO! Triệu chứng bạn mô tả có thể NGUY HIỂM.\n\n"
             "Bạn cần được hỗ trợ y tế NGAY LẬP TỨC!\n\n"
             "Vui lòng:\n"
             "1. Giữ bình tĩnh\n"
             "2. Nhấn nút 'Tìm bệnh viện cấp cứu' bên dưới\n"
             "3. Hoặc gọi 115 (Cấp cứu) ngay",
-            level="danger"
         )
+
+        self.receive_message(recommendation, level="danger")
 
     def find_emergency_hospital(self):
         """
@@ -268,7 +222,7 @@ class ChatbotScreen(MDScreen):
             "   Cấp cứu: 024 3869 3731\n"
             "   Khoảng cách: ~4km\n\n"
             "Gọi 115 để được cấp cứu ngay!",
-            level="danger"
+            level="danger",
         )
 
     def go_back(self):

@@ -72,7 +72,9 @@ def _build_graph():
     try:
         # Khởi tạo LLM và Tools
         tools_list = [extract_prescription]
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        llm = ChatOpenAI(
+            openai_api_base="https://models.inference.ai.azure.com/",
+            model="gpt-4o-mini", temperature=0)
         llm_with_tools = llm.bind_tools(tools_list)
 
         def agent_node(state: AgentState) -> dict:
