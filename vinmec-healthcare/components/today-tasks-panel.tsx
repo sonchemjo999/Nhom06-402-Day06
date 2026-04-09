@@ -351,15 +351,21 @@ export function TodayTasksPanel() {
                   <div className="mt-3 flex flex-wrap gap-1.5 rounded-xl border border-emerald-900/10 bg-white p-1">
                     {statusChoices.map((choice) => {
                       const active = task.status === choice;
+                      const activeTone =
+                        choice === "TODO"
+                          ? "bg-amber-500 text-white hover:bg-amber-500"
+                          : "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]";
+                      const inactiveTone =
+                        choice === "TODO"
+                          ? "text-amber-700 hover:bg-amber-50"
+                          : "text-slate-600 hover:bg-emerald-50";
                       return (
                         <button
                           key={choice}
                           type="button"
                           className={[
                             "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition",
-                            active
-                              ? "bg-[var(--color-primary)] text-white"
-                              : "text-slate-600 hover:bg-emerald-50",
+                            active ? activeTone : inactiveTone,
                           ].join(" ")}
                           onClick={async () => {
                             try {

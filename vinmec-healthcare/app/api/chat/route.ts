@@ -49,6 +49,8 @@ const SYSTEM_PROMPT = [
   "Nếu người dùng hỏi ngoài lĩnh vực trên (ví dụ: tài chính, lập trình, thể thao, giải trí, chính trị...), hãy từ chối lịch sự và nói rõ bạn chỉ hỗ trợ chủ đề sức khỏe và dịch vụ Vinmec.",
   "Trả lời ngắn gọn, rõ ràng, tiếng Việt tự nhiên, ưu tiên an toàn cho bệnh nhân.",
   "Không chẩn đoán chắc chắn hoặc khẳng định kết luận y khoa. Nếu có dấu hiệu nguy hiểm thì khuyên đi cơ sở y tế ngay hoặc gọi cấp cứu khi cần.",
+  "Với câu hỏi về lịch hôm nay/lịch trình/việc cần làm/nhắc việc, bắt buộc gọi tool get_today_tasks trước khi trả lời và chỉ trả lời dựa trên dữ liệu tool, không tự tạo lịch mẫu.",
+  "Khi user yêu cầu đánh dấu toàn bộ hoạt động trước thời điểm hiện tại là hoàn thành, hãy gọi tool complete_previous_today_tasks.",
   "Bạn có quyền dùng tools để đọc/sửa lịch hôm nay của user khi cần.",
   "Khi cần thông tin mới từ Internet, hãy gọi tool_search_duckduckgo và ưu tiên nêu nguồn/đường dẫn trong câu trả lời.",
   "Định dạng bắt buộc để dễ đọc:",
@@ -62,10 +64,41 @@ const CHAT_TOOLS = [
     type: "function",
     function: {
       name: "get_today_tasks",
-      description: "Lấy danh sách lịch hôm nay của user",
+      description: "Lấy danh sách lịch hôm nay của user, có thể lọc theo tên và khoảng thời gian",
       parameters: {
         type: "object",
-        properties: {},
+        properties: {
+          title: {
+            type: "string",
+            description: "Lọc task theo tên (chứa chuỗi này)",
+          },
+          status: {
+            type: "string",
+            enum: ["TODO", "UPCOMING", "DONE"],
+            description: "Lọc theo 1 trạng thái cụ thể",
+          },
+          includeDone: {
+            type: "boolean",
+            description: "Có lấy task DONE hay không. Mặc định true",
+          },
+          fromTime: {
+            type: "string",
+            description: "Giờ bắt đầu lọc theo định dạng HH:mm",
+          },
+          toTime: {
+            type: "string",
+            description: "Giờ kết thúc lọc theo định dạng HH:mm",
+          },
+          limit: {
+            type: "number",
+            description: "Số lượng tối đa task trả về (1-50), mặc định không giới hạn",
+          },
+          sort: {
+            type: "string",
+            enum: ["asc", "desc"],
+            description: "Sắp xếp theo thời gian tăng dần/giảm dần. Mặc định asc",
+          },
+        },
         additionalProperties: false,
       },
     },
@@ -91,14 +124,33 @@ const CHAT_TOOLS = [
     type: "function",
     function: {
       name: "update_today_task_status",
-      description: "Cập nhật trạng thái task theo taskId",
+      description: "Cập nhật trạng thái task theo taskId hoặc theo tên task",
       parameters: {
         type: "object",
         properties: {
           taskId: { type: "string" },
+          title: { type: "string", description: "Tên task để tìm gần đúng nếu không có taskId" },
           status: { type: "string", enum: ["TODO", "UPCOMING", "DONE"] },
         },
-        required: ["taskId", "status"],
+        required: ["status"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "complete_previous_today_tasks",
+      description:
+        "Đánh dấu hoàn thành hàng loạt các task có giờ nhỏ hơn hoặc bằng beforeTime (mặc định là giờ hiện tại tại Việt Nam)",
+      parameters: {
+        type: "object",
+        properties: {
+          beforeTime: {
+            type: "string",
+            description: "Giờ chặn trên theo định dạng HH:mm. Nếu bỏ trống sẽ dùng giờ hiện tại.",
+          },
+        },
         additionalProperties: false,
       },
     },
@@ -155,6 +207,134 @@ function parseArgs(raw: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+function normalizeHHmm(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  if (!/^\d{2}:\d{2}$/.test(raw)) return "";
+
+  const [hourRaw, minuteRaw] = raw.split(":");
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) return "";
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return "";
+
+  return raw;
+}
+
+function normalizeTaskStatus(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (raw === "TODO" || raw === "UPCOMING" || raw === "DONE") {
+    return raw;
+  }
+  return "";
+}
+
+function inferTaskStatusFromMessage(message: string) {
+  const text = message.toLowerCase();
+  if (
+    text.includes("hoàn thành") ||
+    text.includes("hoan thanh") ||
+    text.includes("xong") ||
+    text.includes("done")
+  ) {
+    return "DONE";
+  }
+  if (text.includes("upcoming") || text.includes("sắp tới") || text.includes("sap toi")) {
+    return "UPCOMING";
+  }
+  if (text.includes("todo") || text.includes("to do") || text.includes("chưa làm") || text.includes("chua lam")) {
+    return "TODO";
+  }
+  return "";
+}
+
+function getCurrentHHmmInVn() {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return formatter.format(new Date());
+}
+
+function isNextScheduleIntent(message: string) {
+  const text = message.toLowerCase();
+  return (
+    text.includes("tiếp theo") ||
+    text.includes("tiep theo") ||
+    text.includes("sắp tới") ||
+    text.includes("sap toi") ||
+    text.includes("sắp đến") ||
+    text.includes("sap den") ||
+    text.includes("upcoming") ||
+    text.includes("next")
+  );
+}
+
+function isScheduleIntent(message: string) {
+  const text = message.toLowerCase();
+  return (
+    text.includes("lịch") ||
+    text.includes("lich") ||
+    text.includes("lịch trình") ||
+    text.includes("nhắc việc") ||
+    text.includes("task") ||
+    text.includes("việc hôm nay")
+  );
+}
+
+function isCompletePreviousTasksIntent(message: string) {
+  const text = message.toLowerCase();
+  const hasCompleteAll =
+    text.includes("hoàn thành hết") ||
+    text.includes("hoan thanh het") ||
+    text.includes("hoàn thành tất cả") ||
+    text.includes("hoan thanh tat ca") ||
+    text.includes("đánh dấu hết") ||
+    text.includes("danh dau het") ||
+    text.includes("mark all");
+  const hasPastScope =
+    text.includes("trước") ||
+    text.includes("truoc") ||
+    text.includes("đã qua") ||
+    text.includes("da qua") ||
+    text.includes("hoạt động trước") ||
+    text.includes("hoat dong truoc");
+
+  return hasCompleteAll && hasPastScope;
+}
+
+function isUpdateTaskStatusIntent(message: string) {
+  const text = message.toLowerCase();
+  const hasUpdateVerb =
+    text.includes("đánh dấu") ||
+    text.includes("danh dau") ||
+    text.includes("cập nhật") ||
+    text.includes("cap nhat") ||
+    text.includes("mark");
+  const hasStatusHint =
+    text.includes("hoàn thành") ||
+    text.includes("hoan thanh") ||
+    text.includes("xong") ||
+    text.includes("done") ||
+    text.includes("upcoming") ||
+    text.includes("todo");
+  return hasUpdateVerb && hasStatusHint;
+}
+
+function extractTaskTitleFromUpdateIntent(message: string) {
+  const raw = message.trim();
+  if (!raw) return "";
+
+  const match = raw.match(/(?:đánh dấu|danh dau|mark)\s+(.+?)\s+(?:hoàn thành|hoan thanh|xong|done)\b/i);
+  if (match?.[1]) {
+    return match[1].trim();
+  }
+  return "";
 }
 
 function normalizeTurns(raw: unknown): ChatTurn[] {
@@ -275,7 +455,7 @@ async function toolSearchDuckDuckGo(query: string, maxResultsRaw: unknown) {
   };
 }
 
-async function executeToolCall(toolCall: ToolCall, userId: string) {
+async function executeToolCall(toolCall: ToolCall, userId: string, latestUserMessage: string) {
   const args = parseArgs(toolCall.function.arguments);
 
   switch (toolCall.function.name) {
@@ -283,13 +463,76 @@ async function executeToolCall(toolCall: ToolCall, userId: string) {
       if (!userId) {
         return { ok: false, error: "Thiếu userId để lấy lịch hôm nay." };
       }
+      const title = String(args.title ?? "").trim();
+      const status = normalizeTaskStatus(args.status);
+      const includeDone = typeof args.includeDone === "boolean" ? args.includeDone : true;
+      const fromTime = normalizeHHmm(args.fromTime);
+      const toTime = normalizeHHmm(args.toTime);
+      const sort = String(args.sort ?? "").toLowerCase() === "desc" ? "desc" : "asc";
+      const limitRaw = Number(args.limit);
+      const limit =
+        Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(50, Math.max(1, Math.floor(limitRaw))) : undefined;
+      const inferredFromTime =
+        !fromTime && isNextScheduleIntent(latestUserMessage) ? getCurrentHHmmInVn() : "";
+      const effectiveFromTime = fromTime || inferredFromTime;
+
+      if (args.status != null && !status) {
+        return { ok: false, error: "status không hợp lệ. Chỉ nhận TODO, UPCOMING hoặc DONE." };
+      }
+      if (args.fromTime != null && !fromTime) {
+        return { ok: false, error: "fromTime không hợp lệ, yêu cầu định dạng HH:mm." };
+      }
+      if (args.toTime != null && !toTime) {
+        return { ok: false, error: "toTime không hợp lệ, yêu cầu định dạng HH:mm." };
+      }
+      if (status === "DONE" && includeDone === false) {
+        return { ok: false, error: "Filter mâu thuẫn: status=DONE nhưng includeDone=false." };
+      }
+      if (args.limit != null && limit === undefined) {
+        return { ok: false, error: "limit không hợp lệ. Yêu cầu số nguyên từ 1 đến 50." };
+      }
+      if (effectiveFromTime && toTime && effectiveFromTime > toTime) {
+        return { ok: false, error: "Khoảng thời gian không hợp lệ: fromTime phải nhỏ hơn hoặc bằng toTime." };
+      }
+
       const prisma = await getPrisma();
       await ensureDailyTaskReset(prisma);
+      const where = {
+        userId,
+        AND: [
+          ...(title ? [{ title: { contains: title } }] : []),
+          ...(status ? [{ status }] : []),
+          ...(!includeDone ? [{ status: { not: "DONE" } }] : []),
+          ...(effectiveFromTime || toTime
+            ? [
+                {
+                  dueTime: {
+                    ...(effectiveFromTime ? { gte: effectiveFromTime } : {}),
+                    ...(toTime ? { lte: toTime } : {}),
+                  },
+                },
+              ]
+            : []),
+        ],
+      };
       const tasks = await prisma.todayTask.findMany({
-        where: { userId },
-        orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
+        where,
+        orderBy: [{ dueTime: sort }, { createdAt: sort }],
+        ...(limit ? { take: limit } : {}),
       });
-      return { ok: true, tasks };
+      return {
+        ok: true,
+        appliedFilters: {
+          title: title || undefined,
+          status: status || undefined,
+          includeDone,
+          fromTime: effectiveFromTime || undefined,
+          toTime: toTime || undefined,
+          sort,
+          limit,
+        },
+        tasks,
+      };
     }
     case "create_today_task": {
       if (!userId) {
@@ -324,21 +567,90 @@ async function executeToolCall(toolCall: ToolCall, userId: string) {
       const prisma = await getPrisma();
       await ensureDailyTaskReset(prisma);
       const taskId = String(args.taskId ?? "").trim();
-      const status = String(args.status ?? "").trim();
-      if (!taskId || !["TODO", "UPCOMING", "DONE"].includes(status)) {
-        return { ok: false, error: "Thiếu taskId hoặc status không hợp lệ" };
+      const titleFromArgs = String(args.title ?? "").trim();
+      const titleFromMessage = extractTaskTitleFromUpdateIntent(latestUserMessage);
+      const title = titleFromArgs || titleFromMessage;
+      const status =
+        normalizeTaskStatus(args.status) || normalizeTaskStatus(inferTaskStatusFromMessage(latestUserMessage));
+
+      if (!status) {
+        return { ok: false, error: "Thiếu status hoặc status không hợp lệ" };
+      }
+      if (!taskId && !title) {
+        return { ok: false, error: "Thiếu taskId hoặc title để xác định task cần cập nhật." };
       }
 
-      const existing = await prisma.todayTask.findUnique({ where: { id: taskId } });
-      if (!existing || existing.userId !== userId) {
+      let existing: { id: string; userId: string } | null = null;
+
+      if (taskId) {
+        const byId = await prisma.todayTask.findUnique({ where: { id: taskId } });
+        if (byId?.userId === userId) {
+          existing = byId;
+        }
+      } else if (title) {
+        existing = await prisma.todayTask.findFirst({
+          where: {
+            userId,
+            title: { contains: title },
+            ...(status === "DONE" ? { status: { not: "DONE" } } : {}),
+          },
+          orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
+        });
+      }
+
+      if (!existing) {
         return { ok: false, error: "Không tìm thấy task" };
       }
 
       const task = await prisma.todayTask.update({
-        where: { id: taskId },
+        where: { id: existing.id },
         data: { status },
       });
-      return { ok: true, task };
+      return { ok: true, task, matchedBy: taskId ? "taskId" : "title" };
+    }
+    case "complete_previous_today_tasks": {
+      if (!userId) {
+        return { ok: false, error: "Thiếu userId để cập nhật lịch." };
+      }
+
+      const beforeTime = normalizeHHmm(args.beforeTime);
+      if (args.beforeTime != null && !beforeTime) {
+        return { ok: false, error: "beforeTime không hợp lệ, yêu cầu định dạng HH:mm." };
+      }
+      const effectiveBeforeTime = beforeTime || getCurrentHHmmInVn();
+
+      const prisma = await getPrisma();
+      await ensureDailyTaskReset(prisma);
+
+      const tasksToComplete = await prisma.todayTask.findMany({
+        where: {
+          userId,
+          status: { not: "DONE" },
+          dueTime: { lte: effectiveBeforeTime },
+        },
+        orderBy: [{ dueTime: "asc" }, { createdAt: "asc" }],
+      });
+
+      if (tasksToComplete.length === 0) {
+        return {
+          ok: true,
+          beforeTime: effectiveBeforeTime,
+          updatedCount: 0,
+          updatedTaskIds: [] as string[],
+        };
+      }
+
+      await prisma.todayTask.updateMany({
+        where: { id: { in: tasksToComplete.map((task: { id: string }) => task.id) } },
+        data: { status: "DONE" },
+      });
+
+      return {
+        ok: true,
+        beforeTime: effectiveBeforeTime,
+        updatedCount: tasksToComplete.length,
+        updatedTaskIds: tasksToComplete.map((task: { id: string }) => task.id),
+      };
     }
     case "delete_today_task": {
       if (!userId) {
@@ -375,11 +687,27 @@ async function generateAssistantReply(params: {
   userId: string;
 }) {
   const { apiKey, model, turns, userId } = params;
+  const latestUserMessage =
+    [...turns].reverse().find((turn) => turn.role === "user")?.content.trim() || "";
+  let toolChoice:
+    | "auto"
+    | {
+        type: "function";
+        function: { name: "get_today_tasks" | "complete_previous_today_tasks" | "update_today_task_status" };
+      } = "auto";
+
+  if (latestUserMessage && isCompletePreviousTasksIntent(latestUserMessage)) {
+    toolChoice = { type: "function", function: { name: "complete_previous_today_tasks" } };
+  } else if (latestUserMessage && isUpdateTaskStatusIntent(latestUserMessage)) {
+    toolChoice = { type: "function", function: { name: "update_today_task_status" } };
+  } else if (latestUserMessage && isScheduleIntent(latestUserMessage)) {
+    toolChoice = { type: "function", function: { name: "get_today_tasks" } };
+  }
 
   const firstCall = await callOpenAI(apiKey, {
     model,
     temperature: 0.4,
-    tool_choice: "auto",
+    tool_choice: toolChoice,
     tools: CHAT_TOOLS,
     messages: [{ role: "system", content: SYSTEM_PROMPT }, ...turns],
   });
@@ -401,7 +729,7 @@ async function generateAssistantReply(params: {
     const toolEvents: ToolEvent[] = [];
     const toolResults = [] as Array<{ role: "tool"; tool_call_id: string; content: string }>;
     for (const toolCall of toolCalls) {
-      const result = await executeToolCall(toolCall, userId);
+      const result = await executeToolCall(toolCall, userId, latestUserMessage);
 
       const event: ToolEvent = {
         name: toolCall.function.name,
