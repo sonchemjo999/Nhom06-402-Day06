@@ -1,0 +1,2 @@
+{"timestamp": "2026-04-09T12:23:46.395Z", "event": "SESSION_START", "data": {"session_id": "sess_1775712226395_37095d", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:23:57.794Z", "event": "AGENT_START", "data": {"session_id": "sess_1775712226395_37095d", "query": "tôi hơi đau đầu", "model": "gpt-4o-mini"}}

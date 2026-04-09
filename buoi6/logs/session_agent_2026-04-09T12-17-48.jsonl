@@ -1,0 +1,4 @@
+{"timestamp": "2026-04-09T12:17:48.907Z", "event": "SESSION_START", "data": {"session_id": "sess_1775711868907_d18a82", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:18:04.196Z", "event": "AGENT_START", "data": {"session_id": "sess_1775711868907_d18a82", "query": "tôi không muốn uống thuốc", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:18:11.451Z", "event": "LLM_METRIC", "data": {"step": 1, "model": "gpt-4o-mini", "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "function_call_count": 0}}
+{"timestamp": "2026-04-09T12:18:11.561Z", "event": "AGENT_RESPONSE", "data": {"step": 1, "answer_preview": "Em hiểu cảm giác đó mà anh/chị. Nhiều lúc uống thuốc rất mệt, đắng, khó chịu hoặc làm mình thấy phiền nữa.\n\nNhưng em không khuyên anh/chị tự ý bỏ thuốc, nhất là nếu thuốc đang được bác sĩ kê để điều t", "latency_ms": 7264}}

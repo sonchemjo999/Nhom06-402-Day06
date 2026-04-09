@@ -110,6 +110,9 @@ _saved_crosscheck_payload: dict[str, Any] = {
     "confirmed": False,
     "medications": [],
 }
+
+# In-memory generated schedule when user confirms saving a scanned prescription
+_generated_schedule: list[dict[str, Any]] | None = None
 _current_uploaded_image_url: str | None = None
 
 
@@ -250,7 +253,71 @@ def _normalize_scan_result(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _build_schedule_from_medications(medications: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Create flat schedule items from normalized medications list.
+
+    Each medication may have a `schedule` list of slots with `time` and `note`.
+    We map each slot to a schedule row used by the frontend.
+    """
+    items: list[dict[str, Any]] = []
+    for med in medications:
+        norm = _normalize_medication(med)
+        med_name = norm.get("name")
+        dosage = norm.get("dosage_per_use") or norm.get("strength") or ""
+        icon = norm.get("icon")
+        icon_url = _icon_url(icon)
+        timing_notes = norm.get("timing_notes") or ""
+
+        raw_schedule = norm.get("schedule") or []
+        # If there is no explicit schedule, create a single entry at 09:00
+        if not raw_schedule:
+            items.append(
+                {
+                    "time": "09:00",
+                    "name": med_name,
+                    "dosage": dosage,
+                    "note": timing_notes,
+                    "taken": False,
+                    "icon": icon,
+                    "icon_url": icon_url,
+                }
+            )
+            continue
+
+        for slot in raw_schedule:
+            time_str = slot.get("time") or "09:00"
+            note = slot.get("note") or timing_notes or ""
+            items.append(
+                {
+                    "time": time_str,
+                    "name": med_name,
+                    "dosage": dosage,
+                    "note": note,
+                    "taken": False,
+                    "icon": icon,
+                    "icon_url": icon_url,
+                }
+            )
+
+    # sort by time to present a reasonable ordering
+    def _time_key(row: dict[str, Any]) -> str:
+        return row.get("time") or "00:00"
+
+    items.sort(key=_time_key)
+    return items
+
+
 def _schedule_payload() -> list[dict[str, Any]]:
+    # If user has saved a prescription, prefer the generated schedule
+    if _generated_schedule:
+        items = []
+        for item in _generated_schedule:
+            row = copy.deepcopy(item)
+            row["unlocked"] = False
+            row["icon_url"] = _icon_url(row.get("icon"))
+            items.append(row)
+        return items
+
     items = []
     for item in SAMPLE_SCHEDULE:
         row = copy.deepcopy(item)
@@ -264,46 +331,80 @@ def _chat_reply(message: str) -> dict[str, Any]:
     text = message.strip()
     normalized = text.lower()
 
-    if any(keyword in normalized for keyword in RED_KEYWORDS):
-        return {
-            "level": "danger",
-            "reply": (
-                "CẢNH BÁO! Triệu chứng bạn mô tả có thể nguy hiểm.\n\n"
-                "Bạn nên tìm hỗ trợ y tế ngay. Nếu khó thở, đau ngực, co giật hoặc bất tỉnh, "
-                "hãy gọi 115 hoặc đến cơ sở cấp cứu gần nhất."
-            ),
-            "show_emergency_button": True,
-        }
+    # Try to delegate reply generation to the buoi6 agent if available.
+    # We perform a lazy import so the app still works if langgraph/LLM deps are not installed.
+    try:
+        from buoi6 import agent as buoi_agent
+        from langchain_core.messages import HumanMessage
 
-    if any(keyword in normalized for keyword in YELLOW_KEYWORDS):
-        return {
-            "level": "warning",
-            "reply": (
-                "Mình đã ghi nhận triệu chứng của bạn. Bạn hãy theo dõi kỹ mức độ khó chịu, "
-                "uống thuốc đúng theo đơn và liên hệ bác sĩ nếu triệu chứng tăng lên.\n\n"
-                "Nếu muốn, bạn có thể mô tả thêm mức độ từ 1 đến 10."
-            ),
-            "show_emergency_button": False,
-        }
+        # Build a minimal state payload similar to buoi6's CLI usage.
+        config = {"configurable": {"thread_id": "web_chat"}}
+        result = buoi_agent.graph.invoke({"messages": [HumanMessage(content=text)]}, config)
 
-    if any(keyword in normalized for keyword in GREEN_KEYWORDS):
+        # Expect the agent to return messages list with an AI reply as the last message.
+        reply_msg = None
+        messages = result.get("messages") if isinstance(result, dict) else None
+        if messages and len(messages) > 0:
+            last = messages[-1]
+            # last may be an AIMessage-like object or plain dict
+            reply_msg = getattr(last, "content", None) or (last.get("content") if isinstance(last, dict) else None)
+
+        if not reply_msg:
+            raise RuntimeError("Agent returned no reply")
+
+        # Determine level and show_emergency_button using existing keyword heuristics
+        level = "normal"
+        if any(k in normalized for k in RED_KEYWORDS):
+            level = "danger"
+        elif any(k in normalized for k in YELLOW_KEYWORDS):
+            level = "warning"
+        elif any(k in normalized for k in GREEN_KEYWORDS):
+            level = "normal"
+
+        return {"level": level, "reply": reply_msg, "show_emergency_button": level == "danger"}
+
+    except Exception:
+        # Fall back to the simple keyword-based heuristics if the agent fails or is unavailable.
+        if any(keyword in normalized for keyword in RED_KEYWORDS):
+            return {
+                "level": "danger",
+                "reply": (
+                    "CẢNH BÁO! Triệu chứng bạn mô tả có thể nguy hiểm.\n\n"
+                    "Bạn nên tìm hỗ trợ y tế ngay. Nếu khó thở, đau ngực, co giật hoặc bất tỉnh, "
+                    "hãy gọi 115 hoặc đến cơ sở cấp cứu gần nhất."
+                ),
+                "show_emergency_button": True,
+            }
+
+        if any(keyword in normalized for keyword in YELLOW_KEYWORDS):
+            return {
+                "level": "warning",
+                "reply": (
+                    "Mình đã ghi nhận triệu chứng của bạn. Bạn hãy theo dõi kỹ mức độ khó chịu, "
+                    "uống thuốc đúng theo đơn và liên hệ bác sĩ nếu triệu chứng tăng lên.\n\n"
+                    "Nếu muốn, bạn có thể mô tả thêm mức độ từ 1 đến 10."
+                ),
+                "show_emergency_button": False,
+            }
+
+        if any(keyword in normalized for keyword in GREEN_KEYWORDS):
+            return {
+                "level": "normal",
+                "reply": (
+                    "Rất tốt. Bạn hãy tiếp tục dùng thuốc đúng giờ và theo dõi sức khỏe như bình thường. "
+                    "Nếu có thay đổi bất thường, hãy báo lại để được hướng dẫn tiếp."
+                ),
+                "show_emergency_button": False,
+            }
+
         return {
             "level": "normal",
             "reply": (
-                "Rất tốt. Bạn hãy tiếp tục dùng thuốc đúng giờ và theo dõi sức khỏe như bình thường. "
-                "Nếu có thay đổi bất thường, hãy báo lại để được hướng dẫn tiếp."
+                "Cảm ơn bạn đã chia sẻ. Bạn có thể mô tả rõ hơn triệu chứng hiện tại, "
+                "ví dụ đau đầu, buồn nôn, khó thở, sốt hay mệt mỏi không?"
             ),
             "show_emergency_button": False,
         }
-
-    return {
-        "level": "normal",
-        "reply": (
-            "Cảm ơn bạn đã chia sẻ. Bạn có thể mô tả rõ hơn triệu chứng hiện tại, "
-            "ví dụ đau đầu, buồn nôn, khó thở, sốt hay mệt mỏi không?"
-        ),
-        "show_emergency_button": False,
-    }
 
 
 @app.get("/api/health")
@@ -348,6 +449,13 @@ def save_crosscheck(payload: CrosscheckSaveRequest) -> dict[str, Any]:
 
     _saved_crosscheck_payload["confirmed"] = True
     _saved_crosscheck_payload["medications"] = payload.medications
+    # Build an in-memory schedule from saved medications for the demo
+    global _generated_schedule
+    try:
+        _generated_schedule = _build_schedule_from_medications(payload.medications)
+    except Exception:
+        _generated_schedule = None
+
     return {
         "status": "saved",
         "message": "Đã lưu lịch thuốc cho bản demo.",

@@ -8,6 +8,7 @@ Luồng:
 from __future__ import annotations
 
 import os
+import time
 import re
 from pathlib import Path
 from statistics import mean
@@ -29,6 +30,43 @@ ROUTE_PATTERNS = [
     ("tiêm", "tiêm"),
     ("uống", "uống"),
 ]
+
+# Mocked OCR result for testing / demo when we only want to accept an uploaded image
+# and return deterministic data after a small delay to simulate processing time.
+MOCK_RESULT_SUCCESS = {
+    "status": "success",
+    "confidence": 0.95,
+    "message": "Đọc đơn thuốc thành công",
+    "medications": [
+        {
+            "name": "Paracetamol 500mg",
+            "dosage": "1 viên",
+            "icon": "ic_med_tablet_round_scored.png",
+            "schedule": [
+                {"time": "07:00", "note": "Sau ăn sáng"},
+                {"time": "13:00", "note": "Sau ăn trưa"},
+                {"time": "19:00", "note": "Sau ăn tối"},
+            ],
+        },
+        {
+            "name": "Amoxicillin 500mg",
+            "dosage": "1 viên",
+            "icon": "ic_med_capsule_standard.png",
+            "schedule": [
+                {"time": "08:00", "note": "Sau ăn sáng 1 tiếng"},
+                {"time": "20:00", "note": "Sau ăn tối 1 tiếng"},
+            ],
+        },
+        {
+            "name": "Vitamin C 1000mg",
+            "dosage": "1 viên sủi",
+            "icon": "icon_tablets.png",
+            "schedule": [
+                {"time": "09:00", "note": "Buổi sáng, hòa nước"},
+            ],
+        },
+    ],
+}
 
 
 def _ocr_lang() -> str:
@@ -330,6 +368,16 @@ def _build_result_from_lines(lines: list[dict]) -> dict:
 
 
 def scan_prescription_image(image_path: str) -> dict:
+    """
+    Simplified OCR entrypoint for demo/testing mode:
+    - Validate the uploaded image exists.
+    - Wait 5 seconds to mimic processing latency.
+    - Return MOCK_RESULT_SUCCESS (deterministic mocked output).
+
+    This keeps the rest of the parsing helpers available for future re-enablement
+    of the real OCR flow, but forces a mocked response here so callers only need
+    to upload an image and get a predictable result.
+    """
     if not image_path or not os.path.exists(image_path):
         return {
             "status": "failure",
@@ -340,18 +388,11 @@ def scan_prescription_image(image_path: str) -> dict:
             "review_flags": ["MISSING_IMAGE"],
         }
 
-    try:
-        lines = _extract_ocr_lines(image_path)
-        return _build_result_from_lines(lines)
-    except Exception as exc:
-        return {
-            "status": "failure",
-            "confidence": 0.0,
-            "ask_human": True,
-            "message": f"Lỗi khi chạy PaddleOCR: {exc}",
-            "medications": [],
-            "review_flags": ["PADDLE_OCR_FAILED"],
-        }
+    # Simulate processing time so behavior resembles a real OCR call
+    time.sleep(5)
+
+    # Return deterministic mocked output (success) for demo/testing
+    return MOCK_RESULT_SUCCESS
 
 
 def scan_prescription(case: str = "random") -> dict:

@@ -253,7 +253,6 @@ function renderCrosscheck() {
 
 function appendChatBubble(message, role, level = "normal") {
   state.chatHistory.push({ message, role, level });
-  storage.save("medreminder.chatHistory", state.chatHistory);
   renderChatMessages();
 }
 
@@ -276,7 +275,6 @@ function renderChat() {
         message: "Xin chào. Hôm nay sức khỏe của bạn sau khi dùng thuốc thế nào?",
       },
     ];
-    storage.save("medreminder.chatHistory", state.chatHistory);
   }
 
   renderChatMessages();
@@ -340,7 +338,8 @@ async function loadPrescriptionImage() {
 
 async function boot() {
   state.lastScanResult = null;
-  state.chatHistory = storage.load("medreminder.chatHistory", []);
+  // Do not load saved chat history from localStorage — start fresh each session
+  state.chatHistory = [];
   state.imageUrl = "";
   window.localStorage.removeItem("medreminder.lastScanResult");
   window.localStorage.removeItem("medreminder.imageUrl");

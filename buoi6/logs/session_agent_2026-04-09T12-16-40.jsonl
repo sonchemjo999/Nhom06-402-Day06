@@ -1,0 +1,2 @@
+{"timestamp": "2026-04-09T12:16:40.534Z", "event": "SESSION_START", "data": {"session_id": "sess_1775711800534_bb7525", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:16:53.361Z", "event": "AGENT_START", "data": {"session_id": "sess_1775711800534_bb7525", "query": "tôi không muốn uống thuốc", "model": "gpt-4o-mini"}}

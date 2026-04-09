@@ -1,0 +1,6 @@
+{"timestamp": "2026-04-09T12:25:20.168Z", "event": "SESSION_START", "data": {"session_id": "sess_1775712320168_187202", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:25:27.282Z", "event": "AGENT_START", "data": {"session_id": "sess_1775712320168_187202", "query": "tôi hơi đau đầu", "model": "gpt-4o-mini"}}
+{"timestamp": "2026-04-09T12:25:29.559Z", "event": "TOOL_CALL", "data": {"step": 1, "tool_name": "triage_symptom", "tool_args": {"symptoms": "đau đầu"}}}
+{"timestamp": "2026-04-09T12:25:29.560Z", "event": "LLM_METRIC", "data": {"step": 1, "model": "gpt-4o-mini", "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "function_call_count": 1}}
+{"timestamp": "2026-04-09T12:25:32.815Z", "event": "LLM_METRIC", "data": {"step": 2, "model": "gpt-4o-mini", "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "function_call_count": 0}}
+{"timestamp": "2026-04-09T12:25:32.818Z", "event": "AGENT_RESPONSE", "data": {"step": 2, "answer_preview": "🟢 GREEN — Theo dõi tại nhà\n\nTriệu chứng của anh/chị là \"đau đầu\" có vẻ nhẹ, nên anh/chị có thể theo dõi tại nhà.\n\n📋 Hướng dẫn:\n1. Nghỉ ngơi đầy đủ.\n2. Uống nhiều nước.\n3. Tiếp tục uống thuốc theo đơn.", "latency_ms": 5534}}
