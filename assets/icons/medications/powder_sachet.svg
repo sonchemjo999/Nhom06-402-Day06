@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+
+    <rect x="10" y="14" width="44" height="40" rx="4" fill="#f8f0e8" stroke="#c7a83a" stroke-width="2.5"/>
+    <line x1="10" y1="24" x2="54" y2="24" stroke="#c7a83a" stroke-width="1.5"/>
+    <rect x="16" y="30" width="32" height="18" rx="2" fill="#e8d8a0" opacity="0.4"/>
+    <text x="32" y="42" font-size="8" text-anchor="middle" fill="#c7a83a" font-family="sans-serif">POWDER</text>
+    
+</svg>

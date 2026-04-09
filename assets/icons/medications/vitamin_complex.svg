@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+
+    <circle cx="22" cy="28" r="12" fill="#ffe8a8" stroke="#c7a83a" stroke-width="2.5"/>
+    <circle cx="42" cy="28" r="12" fill="#f8e8a8" stroke="#c7a83a" stroke-width="2.5"/>
+    <circle cx="32" cy="44" r="12" fill="#e8f8e8" stroke="#3ac73a" stroke-width="2.5"/>
+    <text x="22" y="32" font-size="8" text-anchor="middle" fill="#c7a83a" font-family="sans-serif">A</text>
+    <text x="42" y="32" font-size="8" text-anchor="middle" fill="#c7a83a" font-family="sans-serif">B</text>
+    <text x="32" y="48" font-size="8" text-anchor="middle" fill="#3ac73a" font-family="sans-serif">C</text>
+    
+</svg>

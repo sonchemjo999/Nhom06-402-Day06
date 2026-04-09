@@ -1,0 +1,648 @@
+#:kivy 2.0
+# =============================================================================
+#  crosscheck_screen.kv - Đối chiếu Y khoa (Form chỉnh sửa + Ảnh đơn thuốc)
+# =============================================================================
+#  QUY TẮC AN TOÀN CỐT LÕI 2:
+#    Hiển thị SONG SONG: Form chỉnh sửa AI vs Ảnh đơn thuốc gốc.
+#    Bắt buộc checkbox đối chiếu trước khi cho lưu.
+#    Form cho phép sửa từng khung giờ nhắc nhở theo mốc chuẩn y khoa.
+# =============================================================================
+
+# =============================================================================
+#  MedScheduleSlot: Slot có thể chỉnh sửa thời gian
+# =============================================================================
+<MedScheduleSlot>:
+    orientation: "horizontal"
+    size_hint_y: None
+    height: "40dp"
+    spacing: "8dp"
+    md_bg_color: app.crosscheck_form_bg_color
+    radius: [8]
+    padding: "8dp", "4dp"
+
+    MDLabel:
+        text: root.slot_time
+        font_style: "Body2"
+        bold: True
+        theme_text_color: "Custom"
+        text_color: app.theme_cls.primary_color
+        size_hint_x: 0.28
+
+    MDLabel:
+        text: root.slot_note
+        font_style: "Caption"
+        theme_text_color: "Secondary"
+        size_hint_x: 0.42
+
+    MDIconButton:
+        icon: "pencil"
+        size_hint_x: 0.15
+        theme_text_color: "Custom"
+        text_color: app.theme_cls.primary_color
+        on_release: root.open_time_picker()
+
+    MDIconButton:
+        icon: "close"
+        size_hint_x: 0.15
+        theme_text_color: "Custom"
+        text_color: (0.8, 0.2, 0.2, 1)
+        on_release: root.remove_slot()
+
+
+# =============================================================================
+#  MedEditCard: Card chỉnh sửa thuốc
+# =============================================================================
+<MedEditCard>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: self.minimum_height
+    padding: "12dp"
+    spacing: "6dp"
+    radius: [12]
+    elevation: 1
+    md_bg_color: app.crosscheck_form_bg_color
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        size_hint_y: None
+        height: "28dp"
+
+        MDLabel:
+            text: root.med_name
+            font_style: "Subtitle1"
+            bold: True
+            size_hint_x: 0.55
+            theme_text_color: "Custom"
+            text_color: app.text_primary_color
+
+        MDLabel:
+            text: root.med_dosage
+            font_style: "Body2"
+            theme_text_color: "Secondary"
+            size_hint_x: 0.45
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        size_hint_y: None
+        height: "28dp"
+        md_bg_color: app.theme_cls.primary_color
+        radius: [6, 6, 0, 0]
+        padding: "8dp", "2dp"
+
+        MDLabel:
+            text: "Giờ uống"
+            font_style: "Caption"
+            bold: True
+            theme_text_color: "Custom"
+            text_color: (1, 1, 1, 1)
+            size_hint_x: 0.28
+
+        MDLabel:
+            text: "Ghi chú"
+            font_style: "Caption"
+            bold: True
+            theme_text_color: "Custom"
+            text_color: (1, 1, 1, 1)
+            size_hint_x: 0.42
+
+        MDLabel:
+            text: ""
+            size_hint_x: 0.30
+
+    MDBoxLayout:
+        id: slots_container
+        orientation: "vertical"
+        size_hint_y: None
+        height: self.minimum_height
+        spacing: "4dp"
+
+    MDFlatButton:
+        text: "+ Thêm khung giờ"
+        font_size: "13sp"
+        theme_text_color: "Custom"
+        text_color: app.theme_cls.primary_color
+        size_hint_y: None
+        height: "32dp"
+        on_release: root.add_schedule_slot()
+
+
+# =============================================================================
+#  TimeSlotPopup: Popup chọn khung giờ chuẩn y khoa
+# =============================================================================
+<TimeSlotPopup>:
+    title: "Chọn khung giờ uống thuốc"
+    separator_height: 0
+    size_hint: 0.92, 0.85
+    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+    background_color: (1, 1, 1, 1)
+
+    BoxLayout:
+        orientation: "vertical"
+        spacing: "12dp"
+        padding: "16dp"
+
+        MDLabel:
+            text: "Chọn BUỔI và KHOẢNG CÁCH với bữa ăn:"
+            font_style: "Subtitle1"
+            bold: True
+            size_hint_y: None
+            height: "32dp"
+            theme_text_color: "Custom"
+            text_color: app.theme_cls.primary_color
+
+        ScrollView:
+            size_hint_y: 1
+            do_scroll_x: False
+
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "16dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                MDLabel:
+                    text: "--- Buổi cố định ---"
+                    font_style: "Caption"
+                    bold: True
+                    size_hint_y: None
+                    height: "24dp"
+                    theme_text_color: "Custom"
+                    text_color: app.text_secondary_color
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "6dp"
+                    size_hint_y: None
+                    height: self.minimum_height
+
+                    MDFlatButton:
+                        text: "Sáng (06:00 - 08:00)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_form_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("06:00", "Buổi sáng, lúc đói")
+
+                    MDFlatButton:
+                        text: "Trưa (11:30 - 13:00)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_form_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("12:00", "Buổi trưa, cùng bữa ăn")
+
+                    MDFlatButton:
+                        text: "Chiều-Tối (18:00 - 20:00)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_form_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("19:00", "Buổi tối, cùng bữa ăn")
+
+                    MDFlatButton:
+                        text: "Trước khi ngủ (21:00 - 22:00)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_form_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("21:30", "Trước khi ngủ")
+
+                MDLabel:
+                    text: "--- Theo bữa ăn ---"
+                    font_style: "Caption"
+                    bold: True
+                    size_hint_y: None
+                    height: "24dp"
+                    theme_text_color: "Custom"
+                    text_color: app.text_secondary_color
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "6dp"
+                    size_hint_y: None
+                    height: self.minimum_height
+
+                    MDFlatButton:
+                        text: "Trước ăn (30-60 phút)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.status_unlocked_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("07:30", "Trước ăn 30-60 phút")
+
+                    MDFlatButton:
+                        text: "Trong bữa ăn"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.status_unlocked_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("08:00", "Trong bữa ăn")
+
+                    MDFlatButton:
+                        text: "Sau ăn (15-30 phút)"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.status_unlocked_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("08:30", "Sau ăn 15-30 phút")
+
+                    MDFlatButton:
+                        text: "Sau ăn 1 tiếng"
+                        font_size: "15sp"
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        theme_text_color: "Custom"
+                        text_color: app.status_unlocked_color
+                        size_hint_y: None
+                        height: "44dp"
+                        on_release: root.select_slot("09:00", "Sau ăn 1 tiếng")
+
+                MDLabel:
+                    text: "--- Khi có triệu chứng (PRN) ---"
+                    font_style: "Caption"
+                    bold: True
+                    size_hint_y: None
+                    height: "24dp"
+                    theme_text_color: "Custom"
+                    text_color: app.bubble_ai_danger_color
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "6dp"
+                    size_hint_y: None
+                    height: self.minimum_height
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "70dp"
+                        radius: [8]
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        padding: "12dp"
+
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            spacing: "4dp"
+
+                            MDLabel:
+                                text: "Thuốc uống khi có triệu chứng"
+                                font_style: "Body2"
+                                bold: True
+                                theme_text_color: "Custom"
+                                text_color: app.bubble_ai_warning_color
+                                size_hint_y: None
+                                height: "24dp"
+
+                            MDLabel:
+                                text: "Cách nhau ít nhất 4-6 tiếng"
+                                font_style: "Caption"
+                                theme_text_color: "Secondary"
+                                size_hint_y: None
+                                height: "20dp"
+
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        spacing: "6dp"
+                        size_hint_y: None
+                        height: "48dp"
+
+                        MDFlatButton:
+                            text: "Khi sốt/đau"
+                            font_size: "14sp"
+                            md_bg_color: app.bubble_ai_danger_color
+                            theme_text_color: "Custom"
+                            text_color: (1, 0.8, 0.8, 1)
+                            size_hint_x: 0.48
+                            on_release: root.select_slot("KHI SỐT", "Khi có triệu chứng, cách 4-6 tiếng")
+
+                        MDFlatButton:
+                            text: "Khi cần"
+                            font_size: "14sp"
+                            md_bg_color: app.bubble_ai_danger_color
+                            theme_text_color: "Custom"
+                            text_color: (1, 0.8, 0.8, 1)
+                            size_hint_x: 0.48
+                            on_release: root.select_slot("KHI CẦN", "Khi có triệu chứng, cách 4-6 tiếng")
+
+        MDRaisedButton:
+            text: "Đóng"
+            md_bg_color: app.surface_variant_color
+            text_color: app.text_secondary_color
+            size_hint_y: None
+            height: "44dp"
+            on_release: root.dismiss()
+
+
+# =============================================================================
+#  CrossCheckScreen: Màn hình chính
+# =============================================================================
+<CrossCheckScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+
+        MDBoxLayout:
+            size_hint_y: None
+            height: "56dp"
+            padding: "4dp", "4dp"
+            md_bg_color: app.theme_cls.primary_color
+
+            MDFlatButton:
+                text: "< Trở lại"
+                font_size: "15sp"
+                text_color: (1, 1, 1, 1)
+                bold: True
+                pos_hint: {"center_y": 0.5}
+                on_release: root.go_back()
+
+            MDLabel:
+                text: "Xác nhận đơn thuốc"
+                font_style: "H6"
+                theme_text_color: "Custom"
+                text_color: (1, 1, 1, 1)
+                bold: True
+                halign: "center"
+                valign: "center"
+
+        ScrollView:
+            size_hint_y: 1
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "12dp"
+                padding: "12dp"
+                size_hint_y: None
+                height: self.minimum_height
+                adaptive_height: True
+
+                # ===== SUCCESS: Đối chiếu AI vs Ảnh gốc =====
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    adaptive_height: True
+                    opacity: 1 if root.is_success else 0
+                    disabled: not root.is_success
+                    spacing: "10dp"
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "44dp"
+                        radius: [8]
+                        md_bg_color: app.crosscheck_success_bg_color
+                        padding: "12dp"
+
+                        MDLabel:
+                            text: root.ai_message + "  (" + root.confidence_text + ")"
+                            font_style: "Body2"
+                            theme_text_color: "Custom"
+                            text_color: app.status_taken_color
+                            bold: True
+
+                    MDLabel:
+                        text: "QUAN TRỌNG: Đối chiếu kết quả AI với ảnh đơn gốc bên dưới!"
+                        font_style: "Subtitle2"
+                        theme_text_color: "Custom"
+                        text_color: app.bubble_ai_warning_color
+                        bold: True
+                        size_hint_y: None
+                        height: "36dp"
+                        halign: "center"
+
+                    # Form header
+                    MDCard:
+                        size_hint_y: None
+                        height: "32dp"
+                        radius: [8, 8, 0, 0]
+                        md_bg_color: app.theme_cls.primary_color
+                        padding: "12dp", "4dp"
+
+                        MDLabel:
+                            text: "THÔNG TIN THUỐC (chỉnh sửa được):"
+                            font_style: "Caption"
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: (1, 1, 1, 1)
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "32dp"
+                        radius: [0, 0, 0, 0]
+                        md_bg_color: app.surface_variant_color
+                        padding: "12dp", "6dp"
+
+                        MDLabel:
+                            text: "Nhấn bút chỉnh sửa từng khung giờ theo mốc y khoa chuẩn"
+                            font_style: "Caption"
+                            theme_text_color: "Secondary"
+                            size_hint_y: None
+                            height: "20dp"
+
+                    MDBoxLayout:
+                        id: med_edit_container
+                        orientation: "vertical"
+                        spacing: "8dp"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        adaptive_height: True
+
+                    # Ảnh gốc header
+                    MDCard:
+                        size_hint_y: None
+                        height: "32dp"
+                        radius: [8, 8, 0, 0]
+                        md_bg_color: (0.2, 0.55, 0.4, 1)
+                        padding: "12dp", "4dp"
+
+                        MDLabel:
+                            text: "HÌNH ẢNH ĐƠN THUỐC GỐC (chỉ xem):"
+                            font_style: "Caption"
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: (1, 1, 1, 1)
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "300dp"
+                        radius: [0, 0, 12, 12]
+                        md_bg_color: app.crosscheck_image_bg_color
+                        padding: "8dp"
+                        elevation: 1
+
+                        Image:
+                            id: prescription_image
+                            size_hint_y: 1
+                            allow_stretch: True
+                            keep_ratio: True
+
+                    MDLabel:
+                        text: "Đối chiếu thông tin bên trên với ảnh đơn thuốc gốc"
+                        font_style: "Caption"
+                        halign: "center"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
+                        size_hint_y: None
+                        height: "20dp"
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "80dp"
+                        radius: [12]
+                        elevation: 3
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        padding: "12dp"
+
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            spacing: "8dp"
+
+                            MDCheckbox:
+                                id: confirm_checkbox
+                                size_hint: None, None
+                                size: "48dp", "48dp"
+                                pos_hint: {"center_y": 0.5}
+                                on_active: root.toggle_confirmation(self.active)
+
+                            MDLabel:
+                                text: "Tôi đã đối chiếu kỹ hình ảnh gốc và xác nhận thông tin thuốc là chính xác."
+                                font_style: "Body2"
+                                bold: True
+                                theme_text_color: "Custom"
+                                text_color: app.text_primary_color
+
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint_y: None
+                        height: "52dp"
+                        spacing: "8dp"
+
+                        MDFlatButton:
+                            text: "SỬA LỖI"
+                            theme_text_color: "Custom"
+                            text_color: app.bubble_ai_warning_color
+                            font_size: "14sp"
+                            size_hint_x: 0.35
+                            on_release: root.report_correction()
+
+                        MDRaisedButton:
+                            text: "LƯU LỊCH NHẮC"
+                            md_bg_color: app.btn_taken_color if root.is_confirmed else app.btn_disabled_color
+                            text_color: (1, 1, 1, 1)
+                            font_size: "16sp"
+                            size_hint_x: 0.65
+                            height: "52dp"
+                            disabled: not root.is_confirmed
+                            on_release: root.save_schedule()
+
+                # ===== FAILURE: Banner cảnh báo =====
+                MDBoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height if not root.is_success else 0
+                    adaptive_height: True
+                    opacity: 0 if root.is_success else 1
+                    disabled: root.is_success
+                    spacing: "16dp"
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "160dp"
+                        radius: [16]
+                        elevation: 4
+                        md_bg_color: app.bubble_ai_danger_color
+                        padding: "20dp"
+
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            spacing: "8dp"
+
+                            MDLabel:
+                                text: "KHÔNG THỂ ĐỌC ĐƠN THUỐC"
+                                font_style: "H6"
+                                halign: "center"
+                                bold: True
+                                theme_text_color: "Custom"
+                                text_color: (1, 1, 1, 1)
+                                size_hint_y: None
+                                height: "32dp"
+
+                            MDLabel:
+                                text: root.ai_message
+                                font_style: "Body2"
+                                halign: "center"
+                                theme_text_color: "Custom"
+                                text_color: (1.0, 0.8, 0.8, 1)
+                                size_hint_y: None
+                                height: "40dp"
+
+                    MDLabel:
+                        text: root.confidence_text
+                        font_style: "Subtitle2"
+                        halign: "center"
+                        theme_text_color: "Custom"
+                        text_color: app.bubble_ai_warning_color
+                        bold: True
+                        size_hint_y: None
+                        height: "30dp"
+
+                    MDCard:
+                        size_hint_y: None
+                        height: "100dp"
+                        radius: [12]
+                        elevation: 2
+                        md_bg_color: app.crosscheck_confirm_bg_color
+                        padding: "16dp"
+
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            spacing: "4dp"
+
+                            MDLabel:
+                                text: "Bạn nên làm gì?"
+                                font_style: "Subtitle1"
+                                bold: True
+                                size_hint_y: None
+                                height: "28dp"
+
+                            MDLabel:
+                                text: "1. Nhập thông tin thuốc bằng tay\n2. Mang đơn đến Dược sĩ\n3. Chụp lại ảnh rõ hơn"
+                                font_style: "Body2"
+                                size_hint_y: None
+                                height: "50dp"
+
+                    MDRaisedButton:
+                        text: "NHẬP BẰNG TAY"
+                        md_bg_color: app.bubble_ai_warning_color
+                        text_color: (1, 1, 1, 1)
+                        font_size: "16sp"
+                        size_hint_x: 1
+                        height: "50dp"
+                        on_release: pass
+
+                    MDFlatButton:
+                        text: "THỬ QUÉT LẠI"
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.primary_color
+                        font_size: "14sp"
+                        size_hint_x: 1
+                        height: "44dp"
+                        on_release: root.go_back()
+
+                    MDFlatButton:
+                        text: "VỀ TRANG CHỦ"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
+                        font_size: "14sp"
+                        size_hint_x: 1
+                        height: "44dp"
+                        on_release: root.go_home()

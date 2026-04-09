@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+
+    <rect x="12" y="14" width="40" height="40" rx="6" fill="#e8f0e8" stroke="#3ac73a" stroke-width="2.5"/>
+    <rect x="18" y="8" width="28" height="6" rx="3" fill="#bbb" stroke="#999" stroke-width="2"/>
+    <text x="32" y="38" font-size="9" text-anchor="middle" fill="#3ac73a" font-family="sans-serif" font-weight="bold">PROTEIN</text>
+    
+</svg>

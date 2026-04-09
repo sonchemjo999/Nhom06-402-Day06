@@ -1,0 +1,38 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local app state
+.app_datetime
+.app_settings.json
+
+# Build outputs
+build/
+dist/
+bin/
+.buildozer/
+.gradle/
+*.apk
+*.aab
+
+# Logs and local overrides
+*.log
+*.tmp
+*.bak

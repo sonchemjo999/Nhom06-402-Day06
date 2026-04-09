@@ -1,0 +1,18 @@
+# MedReminder dependencies
+
+# Core app
+kivy==2.3.0
+kivymd==1.2.0
+Pillow>=10.0.0
+pygame>=2.0.0
+
+# AI prescription scanning
+langgraph>=0.2.0
+langchain-openai>=0.1.0
+langchain-core>=0.2.0
+python-dotenv>=1.0.0
+typing-extensions>=4.9.0
+
+# Android build tooling
+# Install on Linux/WSL only when building APKs.
+# buildozer>=1.5.0
