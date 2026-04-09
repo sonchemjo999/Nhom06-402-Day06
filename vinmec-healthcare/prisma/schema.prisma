@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskStatus {
+  TODO
+  UPCOMING
+  DONE
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model TodayTask {
+  id        String     @id @default(cuid())
+  userId    String     @map("user_id")
+  title     String
+  dueTime   String     @map("due_time")
+  status    TaskStatus @default(TODO)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("today_tasks")
+}
+
+model ChatSession {
+  id            String        @id @default(cuid())
+  userId        String        @map("user_id")
+  title         String
+  lastMessageAt DateTime      @default(now()) @map("last_message_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  messages      ChatMessage[]
+
+  @@index([userId, lastMessageAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String      @map("session_id")
+  role      ChatRole
+  content   String
+  createdAt DateTime    @default(now()) @map("created_at")
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
+}
+
+model AppState {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_state")
+}
