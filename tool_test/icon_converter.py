@@ -23,8 +23,9 @@ except ImportError:
     os.system(f'"{sys.executable}" -m pip install cairosvg pillow -q')
     import cairosvg
 
-ICONS_DIR = os.path.join(os.path.dirname(__file__), "assets", "icons", "medications")
-PNG_DIR = os.path.join(os.path.dirname(__file__), "assets", "icons", "medications_png")
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ICONS_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons", "medications")
+PNG_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons", "medications_png")
 os.makedirs(PNG_DIR, exist_ok=True)
 
 

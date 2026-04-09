@@ -4,18 +4,18 @@ Lệnh Admin - Test và Debug ứng dụng MedReminder
 ==============================================================================
 File: admin_commands.py
 
-Cách dùng:
-    python admin_commands.py <command> [args]
+Cách dùng (từ thư mục gốc project):
+    python admin/admin_commands.py <command> [args]
 
 Lệnh:
-    python admin_commands.py date              # Hiển thị ngày giờ app đang dùng
-    python admin_commands.py set-date "08/04/2026 10:30:00"  # Đặt ngày giờ
-    python admin_commands.py reset-date        # Reset về ngày hệ thống
-    python admin_commands.py gen-image         # Tạo ảnh đơn thuốc giả lập
-    python admin_commands.py show-image       # Mở ảnh đơn thuốc đã tạo
-    python admin_commands.py run-app          # Chạy ứng dụng
-    python admin_commands.py clear-cache      # Xóa ảnh cache
-    python admin_commands.py help             # Hiển thị trợ giúp
+    python admin/admin_commands.py date              # Hiển thị ngày giờ app đang dùng
+    python admin/admin_commands.py set-date "08/04/2026 10:30:00"  # Đặt ngày giờ
+    python admin/admin_commands.py reset-date        # Reset về ngày hệ thống
+    python admin/admin_commands.py gen-image         # Tạo ảnh đơn thuốc giả lập
+    python admin/admin_commands.py show-image       # Mở ảnh đơn thuốc đã tạo
+    python admin/admin_commands.py run-app          # Chạy ứng dụng
+    python admin/admin_commands.py clear-cache      # Xóa ảnh cache
+    python admin/admin_commands.py help             # Hiển thị trợ giúp
 ==============================================================================
 """
 
@@ -24,11 +24,11 @@ import sys
 import datetime
 import subprocess
 
-# Thêm thư mục app vào path
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
+# Thư mục gốc project (cha của admin/)
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, APP_DIR)
 
-import app_datetime as _app_dt
+import app_core.app_datetime as _app_dt
 
 
 # ============================================================================
@@ -54,7 +54,7 @@ def cmd_set_date(args: list):
     """Đặt ngày giờ cho app."""
     if not args:
         print("[LOI] Thieu tham so ngay.")
-        print('Dinh dang: python admin_commands.py set-date "08/04/2026 10:30:00"')
+        print('Dinh dang: python admin/admin_commands.py set-date "08/04/2026 10:30:00"')
         print()
         print("Format ho tro:")
         print('  "08/04/2026 10:30:00"   (ngay/thang/nam  gio:phut:giay)')
@@ -141,7 +141,7 @@ def cmd_help():
   LENH ADMIN - MEDREMINDER
 ================================================================================
 
-  Cach dung:  python admin_commands.py <command> [args]
+  Cach dung:  python admin/admin_commands.py <command> [args]
 
   LENH NGAY GIO:
     date              Hien thi ngay gio hien tai cua app
@@ -161,28 +161,28 @@ def cmd_help():
   VI DU TEST ALARM:
 ================================================================================
   # Buoc 1: Kiem tra ngay gio hien tai
-  python admin_commands.py date
+  python admin/admin_commands.py date
 
   # Buoc 2: Dat gio muon test (vi du trigger alarm 07:00)
-  python admin_commands.py set-date "08/04/2026 06:59:00"
+  python admin/admin_commands.py set-date "08/04/2026 06:59:00"
 
   # Buoc 3: Chay app -> alarm se trigger o 07:00
-  python admin_commands.py run-app
+  python admin/admin_commands.py run-app
 
   # Reset ve binh thuong
-  python admin_commands.py reset-date
+  python admin/admin_commands.py reset-date
 
 ================================================================================
   VI DU TEST ẢNH:
 ================================================================================
   # Tao anh (lan dau hoac tao lai)
-  python admin_commands.py gen-image
+  python admin/admin_commands.py gen-image
 
   # Mo xem anh
-  python admin_commands.py show-image
+  python admin/admin_commands.py show-image
 
   # Xoa cache -> lan sau se tao lai
-  python admin_commands.py clear-cache
+  python admin/admin_commands.py clear-cache
 ================================================================================
 """)
 
@@ -213,7 +213,7 @@ def main():
 
     if cmd not in COMMANDS:
         print(f"[LOI] Lenh khong ton tai: '{cmd}'")
-        print("Go 'python admin_commands.py help' de xem danh sach lenh.")
+        print("Go 'python admin/admin_commands.py help' de xem danh sach lenh.")
         return
 
     func, _ = COMMANDS[cmd]

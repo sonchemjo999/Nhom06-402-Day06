@@ -26,8 +26,8 @@ class SettingsScreen(MDScreen):
         pass
 
     def refresh_alarm_sound_label(self):
-        from app_settings import get_alarm_sound_file
-        from sound_manager import get_sound_label
+        from app_core.app_settings import get_alarm_sound_file
+        from app_core.sound_manager import get_sound_label
         try:
             if self.ids.get("alarm_sound_value"):
                 self.ids.alarm_sound_value.text = get_sound_label(get_alarm_sound_file())
@@ -35,7 +35,7 @@ class SettingsScreen(MDScreen):
             pass
 
     def update_all_toggles(self):
-        from app_settings import get_dark_mode, get_sound_enabled, get_vibration_enabled
+        from app_core.app_settings import get_dark_mode, get_sound_enabled, get_vibration_enabled
         try:
             ids = self.ids
             if ids.get("dark_mode_switch"):
@@ -52,18 +52,18 @@ class SettingsScreen(MDScreen):
         self._get_app().set_dark_mode(active)
 
     def toggle_sound(self, *args):
-        from app_settings import set_sound_enabled
+        from app_core.app_settings import set_sound_enabled
         active = bool(args[1]) if len(args) >= 2 else False
         set_sound_enabled(active)
 
     def toggle_vibration(self, *args):
-        from app_settings import set_vibration_enabled
+        from app_core.app_settings import set_vibration_enabled
         active = bool(args[1]) if len(args) >= 2 else False
         set_vibration_enabled(active)
 
     def open_sound_picker(self):
-        from app_settings import get_alarm_sound_file, set_alarm_sound_file
-        from sound_manager import get_sound_choices, stop_alarm
+        from app_core.app_settings import get_alarm_sound_file, set_alarm_sound_file
+        from app_core.sound_manager import get_sound_choices, stop_alarm
 
         stop_alarm()
         choices = get_sound_choices()
@@ -140,8 +140,8 @@ class SettingsScreen(MDScreen):
         popup.open()
 
     def preview_alarm_sound(self):
-        from app_settings import get_alarm_sound_file
-        from sound_manager import play_preview, stop_alarm
+        from app_core.app_settings import get_alarm_sound_file
+        from app_core.sound_manager import play_preview, stop_alarm
 
         stop_alarm()
         play_preview(get_alarm_sound_file(), duration_sec=2.5)

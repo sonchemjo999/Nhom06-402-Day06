@@ -42,7 +42,7 @@ def check_dependencies():
         print("   4. Linux 虚拟机")
     else:
         print("❌ 缺少依赖，请先安装：")
-        print(f"   pip install -r requirements.txt")
+        print(f"   pip install -r config/requirements.txt")
     print("=" * 50)
     return all_ok
 
@@ -55,8 +55,8 @@ def build_apk_info():
 
 在你的项目目录 (App1) 中，有两个配置文件已准备好：
 
-  ✅ buildozer.spec  - Buildozer 构建配置
-  ✅ requirements.txt - Python 依赖列表
+  ✅ packaging/buildozer.spec  - Buildozer 构建配置
+  ✅ config/requirements.txt - Python 依赖列表
 
 ==========================================
 构建步骤（选择一种方式）：
@@ -78,7 +78,7 @@ def build_apk_info():
 # 上传你的 App1 文件夹到 Colab
 # 然后进入 App1 目录执行：
 
-!buildozer android debug
+!buildozer -f packaging/buildozer.spec android debug
 
 # APK 将生成在 bin/ 目录下
 
@@ -101,14 +101,11 @@ sudo apt install -y python3-pip python3-dev ffmpeg libavcodec-extra \\
 
 4. 进入目录，安装 Python 依赖：
    cd ~/App1
-   pip3 install -r requirements.txt
+   pip3 install -r config/requirements.txt
    pip3 install buildozer
 
-5. 初始化 Buildozer：
-   buildozer init
-
-6. 构建 APK：
-   buildozer android debug
+5. 构建 APK（使用项目里的 spec）：
+   buildozer -f packaging/buildozer.spec android debug
 
 APK 将生成在 /root/.buildozer/apk/.../bin/ 目录下
 

@@ -1,4 +1,4 @@
-# MedReminder - ứng dụng nhắc nhở uống thuốc Vinmec
+﻿# MedReminder - ứng dụng nhắc nhở uống thuốc Vinmec
 
 ## 1. Tổng quan sản phẩm
 
@@ -59,6 +59,7 @@ MedReminder là ứng dụng nhắc nhở uống thuốc y tế được phát t
 | Giao diện Dark Mode | Chuyển đổi giao diện sáng/tối | P1 |
 | Tuỳ chỉnh âm báo | Chọn nhạc chuông nhắc nhở | P1 |
 | Nhắc nhở bổ sung | Snooze nhiều lần trước khi bỏ qua | P2 |
+| Tiền xử lý ảnh | Adaptive threshold, deskew, contrast, denoise | P0 |
 | Widget màn hình chính | Hiển thị lịch thuốc trên màn hình chính | P2 |
 | Kết nối thiết bị y tế | Đồng bộ với máy đo huyết áp, đường huyết | P3 |
 
@@ -213,21 +214,29 @@ MedReminder là ứng dụng nhắc nhở uống thuốc y tế được phát t
 ### 6.3 Layout chính
 
 ```
-┌────────────────────────────────┐
-│       AppBar Vinmec            │
-├────────────────────────────────┤
-│                                │
-│        Nội dung chính          │
-│        (ScreenManager)         │
-│                                │
-│                                │
-│                                │
-├────────────────────────────────┤
-│  🏠    📷    💬    ⚙️          │
-│ Trang  Quét  Chat  Cài         │
-│ Chủ   AI   Bot   Đặt          │
-└────────────────────────────────┘
+┌──────────────────────────────────────┐
+│       AppBar Vinmec                  │
+├──────────────────────────────────────┤
+│                                      │
+│        Nội dung chính                │
+│        (ScreenManager)               │
+│                                      │
+│                                      │
+│                                      │
+├──────────────────────────────────────┤
+│                                      │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ │
+│  │   🏠   │ │   📷   │ │   💬   │ │   ⚙️   │ │
+│  │ Trang  │ │ Quét   │ │ Chat   │ │ Cài    │ │
+│  │  chủ   │ │  đơn   │ │   AI   │ │  đặt   │ │
+│  │(primary)│ │(second)│ │(second)│ │(second)│ │
+│  └────────┘ └────────┘ └────────┘ └────────┘ │
+│  Tab icon + chữ, đều nhau 25%          │
+│                                      │
+└──────────────────────────────────────┘
 ```
+
+> **Thanh điều hướng dưới (Bottom Navigation Bar):** 4 tab cùng mẫu thiết kế — icon trên, chữ dưới. Tab "Trang chủ" dùng màu primary; 3 tab còn lại dùng màu secondary. Tất cả tab đều có `MDIconButton` + `MDLabel` (font_style: Caption).
 
 ---
 

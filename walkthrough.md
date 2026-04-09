@@ -25,9 +25,9 @@
 ```
 App1/
 ├── main.py                    # Entry point, khởi tạo MDApp + ScreenManager
-├── app_root.kv                # Layout gốc chứa ScreenManager (4 màn hình)
+├── kv/app_root.kv             # Layout gốc chứa ScreenManager
 ├── app_datetime.py            # Quản lý ngày giờ app (test alarm, file cache)
-├── admin_commands.py          # Lệnh admin: date, gen-image, run-app...
+├── admin/admin_commands.py    # Lệnh admin: date, gen-image, run-app...
 ├── .env                       # API Key cho OpenAI (LangGraph agent)
 ├── .app_datetime             # File cache ngày giờ tùy chỉnh (do admin tạo)
 ├── spec-draft.md              # Tài liệu đặc tả sản phẩm AI
@@ -126,7 +126,7 @@ App1/
 | **Đồng hồ đứng im khi có `.app_datetime`** | ✅ Fixed | Mốc ảo + cộng thời gian thực (`time.time()`); đồng hồ chạy từng giây |
 | **Alarm lệch giờ so với UI** | ✅ Fixed | `alarm_service.py` dùng `get_app_now()` thay vì `datetime.now()` |
 | **Đồng hồ Home không refresh** | ✅ Fixed | `StringProperty` + `Clock.schedule_interval` trên `HomeScreen` |
-| **Lệnh admin (date, set-date, gen-image...)** | ✅ Xong | `admin_commands.py` — test alarm + ảnh |
+| **Lệnh admin (date, set-date, gen-image...)** | ✅ Xong | `admin/admin_commands.py` — test alarm + ảnh |
 | **Cache ảnh đơn thuốc (PIL)** | ✅ Xong | Kiểm tra tồn tại trước khi tạo |
 | **30 file MP3 báo thức từ Mewdicate** | ✅ Xong | `assets/sounds/` |
 | **Phát âm thanh alarm (pygame.mixer + winsound)** | ✅ Xong | `sound_manager.py` |
@@ -277,11 +277,11 @@ python main.py
 
 ### 8.3. Lệnh Admin (test & debug)
 
-Dùng file `admin_commands.py` để quản lý ngày giờ, ảnh, và chạy app.
+Dùng file `admin/admin_commands.py` để quản lý ngày giờ, ảnh, và chạy app.
 
 ```bash
 cd G:\AI_THUC_CHIEN_20K_2026_K1\test_app\App1
-python admin_commands.py <command>
+python admin/admin_commands.py <command>
 ```
 
 | Lệnh | Mô tả |
@@ -299,21 +299,21 @@ python admin_commands.py <command>
 
 ```bash
 # Cách 1: Đặt giờ trước 1 phút -> alarm sẽ trigger đúng giờ
-python admin_commands.py set-date "08/04/2026 06:59:00"
-python admin_commands.py run-app
+python admin/admin_commands.py set-date "08/04/2026 06:59:00"
+python admin/admin_commands.py run-app
 
 # Reset về ngày thực
-python admin_commands.py reset-date
+python admin/admin_commands.py reset-date
 ```
 
 #### Ví dụ test ảnh:
 
 ```bash
 # Tạo ảnh mới (bỏ cache)
-python admin_commands.py gen-image
+python admin/admin_commands.py gen-image
 
 # Mở xem ảnh
-python admin_commands.py show-image
+python admin/admin_commands.py show-image
 ```
 
 ### 8.4. Các format ngày giờ hỗ trợ

@@ -8,16 +8,16 @@ Lưu trữ:
     - Dark Mode: True/False
     - Âm thanh báo thức: True/False
     - Rung khi báo thức: True/False
-    - File: .app_settings.json cùng thư mục main.py
+    - File: config/.app_settings.json
 """
 
 import os
 import json
 
-_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    ".app_settings.json"
-)
+from app_core.paths import CONFIG_DIR
+
+os.makedirs(CONFIG_DIR, exist_ok=True)
+_FILE_PATH = os.path.join(CONFIG_DIR, ".app_settings.json")
 
 _DEFAULT_SETTINGS = {
     "dark_mode": False,
@@ -91,7 +91,7 @@ def get_alarm_sound_file() -> str:
 
 
 def set_alarm_sound_file(filename: str):
-    from sound_manager import list_mp3_files, DEFAULT_ALARM_SOUND
+    from app_core.sound_manager import list_mp3_files, DEFAULT_ALARM_SOUND
     fn = str(filename).strip()
     allowed = list_mp3_files()
     if fn not in allowed:

@@ -7,8 +7,9 @@ import sys
 
 from kivy.clock import Clock
 
-_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-_SOUNDS_DIR = os.path.join(_BASE_DIR, "assets", "sounds")
+from app_core.paths import PROJECT_ROOT
+
+_SOUNDS_DIR = os.path.join(PROJECT_ROOT, "assets", "sounds")
 
 # Nhãn hiển thị (tiếng Việt) — bổ sung theo tên file
 _SOUND_LABELS = {

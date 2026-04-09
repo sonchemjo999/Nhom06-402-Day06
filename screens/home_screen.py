@@ -10,9 +10,9 @@
 """
 
 import os
-from app_datetime import get_app_now
-from app_settings import get_sound_enabled, get_vibration_enabled, get_alarm_sound_file
-from sound_manager import play_alarm, stop_alarm
+from app_core.app_datetime import get_app_now
+from app_core.app_settings import get_sound_enabled, get_vibration_enabled, get_alarm_sound_file
+from app_core.sound_manager import play_alarm, stop_alarm
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.card import MDCard
 from kivymd.uix.label import MDLabel
@@ -25,7 +25,7 @@ from kivy.clock import Clock
 from kivymd.uix.snackbar import MDSnackbar
 from kivymd.uix.boxlayout import MDBoxLayout
 
-from data.mock_data import SAMPLE_SCHEDULE
+from data.schedule_store import schedule_store
 from services.alarm_service import AlarmService
 
 
@@ -164,7 +164,7 @@ class HomeScreen(MDScreen):
         if not container:
             return
         container.clear_widgets()
-        for item in SAMPLE_SCHEDULE:
+        for item in schedule_store.load():
             card = MedCard(
                 med_time=item["time"],
                 med_name=item["name"],
@@ -178,10 +178,12 @@ class HomeScreen(MDScreen):
 
     def mark_as_taken(self, card):
         card.med_taken = True
-        for item in SAMPLE_SCHEDULE:
+        current = schedule_store.load()
+        for item in current:
             if item["time"] == card.med_time and item["name"] == card.med_name:
                 item["taken"] = True
                 break
+        schedule_store.save(current)
         self.alarm_service.confirm_taken(card.med_time, card.med_name)
         MDSnackbar(
             MDLabel(
@@ -221,10 +223,12 @@ class HomeScreen(MDScreen):
     def _on_alarm_confirm(self, med_info):
         stop_alarm()
         self._current_popup = None
-        for item in SAMPLE_SCHEDULE:
+        current = schedule_store.load()
+        for item in current:
             if item["time"] == med_info["time"] and item["name"] == med_info["name"]:
                 item["taken"] = True
                 break
+        schedule_store.save(current)
         self.alarm_service.confirm_taken(med_info["time"], med_info["name"])
         self.load_schedule()
         MDSnackbar(

@@ -53,8 +53,8 @@
 ================================================================================
   Đã thực hiện sẵn các bước sau:
 
-  ✅ buildozer.spec - File cấu hình build đã tạo
-  ✅ requirements.txt - Danh sách dependencies
+  ✅ packaging/buildozer.spec - File cấu hình build đã tạo
+  ✅ config/requirements.txt - Danh sách dependencies
   ✅ __init__.py - Đã có trong tất cả các package
 
   CẦN THỰC HIỆN THÊM:
@@ -137,7 +137,7 @@
   # !buildozer init
 
   # Build debug APK
-  !buildozer android debug
+  !buildozer -f packaging/buildozer.spec android debug
   ```
 
   ⏱️ Thời gian: 15-30 phút (lần đầu tiên, download Android SDK)
@@ -211,7 +211,7 @@
   BƯỚC 5: Cài Python dependencies
   -------------------------------
   ```bash
-  pip3 install -r requirements.txt
+  pip3 install -r config/requirements.txt
   pip3 install buildozer==1.5.0
   ```
 
@@ -225,7 +225,7 @@
   BƯỚC 7: Build APK
   -----------------
   ```bash
-  buildozer android debug
+  buildozer -f packaging/buildozer.spec android debug
   ```
 
   ⏱️ Thời gian: 20-45 phút (lần đầu)
@@ -283,14 +283,14 @@
   BƯỚC 5: Cài dependencies
   ------------------------
   ```bash
-  pip install -r requirements.txt
+  pip install -r config/requirements.txt
   pip install buildozer==1.5.0
   ```
 
   BƯỚC 6: Build
   -------------
   ```bash
-  buildozer android debug
+  buildozer -f packaging/buildozer.spec android debug
   ```
 
   ⏱️ Thời gian: 30-60 phút (phụ thuộc vào điện thoại)
@@ -328,7 +328,7 @@
   Nguyên nhân: Android SDK chưa được tải.
   Giải quyết:
   ```bash
-  buildozer android debug --verbose
+  buildozer -f packaging/buildozer.spec android debug --verbose
   # Buildozer sẽ tự tải SDK
   ```
 
@@ -438,7 +438,7 @@
 
   4. Build release:
   ```bash
-  buildozer android release
+  buildozer -f packaging/buildozer.spec android release
   ```
 
   B. CẬP NHẬT BUILD SPEC

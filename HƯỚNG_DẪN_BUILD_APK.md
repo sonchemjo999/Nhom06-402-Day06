@@ -8,35 +8,39 @@ Dự án **MedReminder** đã được chuẩn bị sẵn sàng để build thà
 
 | File | Mục đích |
 |------|----------|
-| `buildozer.spec` | Cấu hình Buildozer cho Android |
-| `requirements.txt` | Danh sách Python dependencies |
-| `BUILD_GUIDE.py` | Hướng dẫn chi tiết đầy đủ |
-| `build_apk.py` | Script kiểm tra và hướng dẫn nhanh |
+| `packaging/buildozer.spec` | Cấu hình Buildozer cho Android |
+| `config/requirements.txt` | Danh sách Python dependencies |
+| `packaging/BUILD_GUIDE.py` | Hướng dẫn chi tiết đầy đủ |
+| `packaging/build_on_vps.sh` | Script tự động cho VPS Ubuntu 22 |
 
 ### Cấu Trúc Project
 
 ```
-App1/
+App5/
 ├── main.py                      # Entry point ✅
-├── buildozer.spec               # ✅ ĐÃ TẠO
-├── requirements.txt             # ✅ ĐÃ TẠO
-├── BUILD_GUIDE.py               # ✅ Hướng dẫn đầy đủ
-├── build_apk.py                 # ✅ Script kiểm tra
-├── kv/                         # UI files ✅
-├── screens/                    # Logic ✅
-├── services/                   # Alarm service ✅
-├── ai_core/                   # AI agent ✅
-├── data/                      # Mock data ✅
+├── README.md, *.md              # Tài liệu gốc
+├── packaging/
+│   ├── buildozer.spec
+│   ├── build_apk.py, BUILD_GUIDE.py, *.sh
+├── config/
+│   ├── requirements.txt, .env.example
+├── app_core/                    # theme, sound, settings, datetime
+├── admin/admin_commands.py
+├── kv/                          # UI (gồm app_root.kv) ✅
+├── screens/                     # Logic ✅
+├── services/                    # Alarm service ✅
+├── ai_core/                     # AI agent ✅
+├── data/                        # Mock data ✅
 ├── assets/
-│   ├── icons/medications/     # 78 icons (SVG+PNG) ✅
-│   ├── icons/medications_png/ # 42 PNG icons ✅
-│   └── sounds/                # 33 MP3 ringtones ✅
-└── __init__.py files          # 5 packages ✅
+│   ├── icons/medications/
+│   ├── icons/medications_png/
+│   └── sounds/
+└── tool_test/                   # script icon (không đóng gói APK)
 ```
 
 ---
 
-## 🚀 Cách Build Đơn Giản Nhất: Google Colab
+## 🚀 Cách 4: Build trên Google Colab (Nhanh nhất)
 
 ### Bước 1: Mở Google Colab
 
@@ -77,8 +81,8 @@ import shutil
 
 %cd /content/App1
 
-# Build debug APK
-!buildozer android debug
+# Build debug APK (spec nằm trong packaging/)
+!buildozer -f packaging/buildozer.spec android debug
 ```
 
 ### Bước 3: Tải APK về
@@ -97,7 +101,105 @@ files.download('/content/medreminder.apk')
 
 ---
 
-## 🖥️ Cách 2: Build trên WSL2 Ubuntu (Khuyến nghị cho Windows)
+## 🖥️ Cách 2: Build trên VPS Ubuntu 22.04 (Khuyến nghị)
+
+Đây là cách **khuyến nghị** nếu bạn có VPS Ubuntu 22.04 (Google Cloud, DigitalOcean, Vultr, AWS...).
+
+### Yêu cầu VPS
+
+| Thông số | Minimum | Khuyến nghị |
+|----------|---------|-------------|
+| RAM | 4GB | **8GB+** |
+| Disk | 30GB | **50GB+** |
+| CPU | 2 cores | **4 cores** |
+
+### Các bước
+
+#### 1. SSH vào VPS
+
+```bash
+ssh root@YOUR_VPS_IP
+```
+
+#### 2. Upload script và source code
+
+Trên **máy Windows** của bạn:
+
+```powershell
+# Nén thư mục App1 thành ZIP
+cd g:\AI_THUC_CHIEN_20K_2026_K1\test_app
+Compress-Archive -Path App1 -DestinationPath App1.zip -Force
+
+# Upload lên VPS
+scp App1.zip root@YOUR_VPS_IP:/root/
+```
+
+#### 3. Giải nén và chạy script
+
+Trên **VPS**:
+
+```bash
+# SSH vào VPS
+ssh root@YOUR_VPS_IP
+
+# Giải nén source code
+cd /root
+unzip App1.zip
+cd App1
+
+# Phân quyền và chạy script (từ thư mục gốc project)
+chmod +x packaging/build_on_vps.sh
+bash packaging/build_on_vps.sh
+```
+
+#### 4. Script tự động làm gì?
+
+Script `packaging/build_on_vps.sh` sẽ tự động:
+
+1. ✅ Cập nhật hệ thống Ubuntu
+2. ✅ Cài đặt tất cả dependencies (SDL2, Java, GStreamer...)
+3. ✅ Cấu hình Java (JAVA_HOME)
+4. ✅ Tạo swap file 4GB nếu RAM < 8GB
+5. ✅ Tạo virtual environment và cài Python packages
+6. ✅ Build APK với Buildozer
+
+#### 5. Copy APK về máy Windows
+
+Sau khi build hoàn tất, trên **máy Windows**:
+
+```powershell
+scp root@YOUR_VPS_IP:/root/App1/bin/*.apk g:\AI_THUC_CHIEN_20K_2026_K1\test_app\
+```
+
+### Khắc phục lỗi trên VPS
+
+#### ❌ Lỗi "Java not found"
+
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export PATH=$JAVA_HOME/bin:$PATH
+```
+
+#### ❌ Lỗi "Out of memory"
+
+```bash
+# Tạo thêm swap
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+#### ❌ Lỗi buildozer không tìm thấy SDK
+
+```bash
+# Buildozer sẽ tự tải SDK, chỉ cần chạy lại
+buildozer -f packaging/buildozer.spec android debug --verbose
+```
+
+---
+
+## 🖥️ Cách 3: Build trên WSL2 Ubuntu
 
 ### Yêu cầu
 
@@ -144,14 +246,14 @@ cd ~/App1
 #### 5. Cài Python dependencies
 
 ```bash
-pip3 install -r requirements.txt
+pip3 install -r config/requirements.txt
 pip3 install buildozer==1.5.0
 ```
 
 #### 6. Build APK
 
 ```bash
-buildozer android debug
+buildozer -f packaging/buildozer.spec android debug
 ```
 
 ⏱️ **Thời gian**: 20-45 phút (lần đầu tiên)
@@ -197,14 +299,14 @@ cd ~/App1
 #### 4. Cài Python packages
 
 ```bash
-pip install -r requirements.txt
+pip install -r config/requirements.txt
 pip install buildozer==1.5.0
 ```
 
 #### 5. Build
 
 ```bash
-buildozer android debug
+buildozer -f packaging/buildozer.spec android debug
 ```
 
 ⏱️ **Thời gian**: 30-60 phút
@@ -223,7 +325,7 @@ cp ~/App1/bin/*.apk /sdcard/
 
 ```bash
 # Buildozer sẽ tự tải SDK, chỉ cần chạy lại
-buildozer android debug --verbose
+buildozer -f packaging/buildozer.spec android debug --verbose
 ```
 
 ### ❌ Lỗi: "Java not found"
@@ -243,7 +345,7 @@ export PATH=$JAVA_HOME/bin:$PATH
 cp -r /mnt/g/AI_THUC_CHIEN_20K_2026_K1/test_app/App1 ~/
 cd ~/App1
 # Bây giờ mới build
-buildozer android debug
+buildozer -f packaging/buildozer.spec android debug
 ```
 
 ### ❌ Lỗi: Build quá chậm / bị kill
@@ -328,7 +430,7 @@ Nếu gặp lỗi không có trong danh sách trên, hãy:
 
 1. Chạy với flag `--verbose` để xem chi tiết lỗi:
    ```bash
-   buildozer android debug --verbose
+   buildozer -f packaging/buildozer.spec android debug --verbose
    ```
 
 2. Kiểm tra log trong `.buildozer/` directory

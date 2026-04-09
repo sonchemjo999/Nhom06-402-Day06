@@ -11,7 +11,7 @@ Mô tả:
     - Ngày giờ tùy chỉnh được LƯU VÀO FILE vào/ra app
 
 Cách dùng:
-    from app_datetime import get_app_now, set_app_datetime, reset_app_datetime
+    from app_core.app_datetime import get_app_now, set_app_datetime, reset_app_datetime
 
     now = get_app_now()           # datetime object
     set_app_datetime("08/04/2026 07:00:00")  # Lưu file
@@ -23,11 +23,13 @@ import os
 import time as _time
 import datetime as _datetime
 
+from app_core.paths import CONFIG_DIR
+
 # ============================================================================
-# FILE LƯU TRỮ: Lưu ngày giờ tùy chỉnh giữa các lần chạy
+# FILE LƯU TRỮ: Lưu ngày giờ tùy chỉnh giữa các lần chạy (config/.app_datetime)
 # ============================================================================
-# File nằm cùng thư mục với main.py
-_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".app_datetime")
+os.makedirs(CONFIG_DIR, exist_ok=True)
+_FILE_PATH = os.path.join(CONFIG_DIR, ".app_datetime")
 
 # Khi có override: neo thời gian ảo tại lần đọc đầu + cộng dồn giây thực (time.time)
 # → đồng hồ app vẫn “chạy” giống timenow, không bị đứng im

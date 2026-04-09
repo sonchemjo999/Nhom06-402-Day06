@@ -22,8 +22,8 @@ import time
 from datetime import datetime
 from kivy.clock import Clock
 
-from app_datetime import get_app_now
-from data.mock_data import SAMPLE_SCHEDULE
+from app_core.app_datetime import get_app_now
+from data.schedule_store import schedule_store
 
 
 # Khoang cach giua cac lan nhac (giay)
@@ -100,7 +100,7 @@ class AlarmService:
         # Dùng cùng nguồn thời gian với đồng hồ UI (get_app_now có thể là mốc test + thời gian thực trôi)
         now = get_app_now()
 
-        for item in SAMPLE_SCHEDULE:
+        for item in schedule_store.load():
             if item.get("taken", False):
                 continue
 

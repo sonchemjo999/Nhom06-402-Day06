@@ -15,7 +15,8 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 
-PNG_DIR = os.path.join(os.path.dirname(__file__), "assets", "icons", "medications_png")
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PNG_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons", "medications_png")
 os.makedirs(PNG_DIR, exist_ok=True)
 
 SIZE = 64

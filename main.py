@@ -10,7 +10,7 @@
  Kiến trúc:
    - UI (KV Language)  -> kv/*.kv
    - Logic (Python)    -> screens/*.py
-   - Theme Manager     -> theme_manager.py (màu động Light/Dark)
+   - Theme Manager     -> app_core/theme_manager.py (màu động Light/Dark)
    - Services          -> services/*.py (alarm, notification)
    - AI Core           -> ai_core/*.py (LangGraph agent)
    - Data              -> data/*.py (mock data)
@@ -38,8 +38,8 @@ from kivy.properties import ListProperty
 from kivymd.app import MDApp
 
 # Import theme manager
-from theme_manager import ThemeManager
-from app_settings import get_dark_mode, get_sound_enabled, get_vibration_enabled
+from app_core.theme_manager import ThemeManager
+from app_core.app_settings import get_dark_mode, get_sound_enabled, get_vibration_enabled
 
 # Import cac man hinh
 from screens.home_screen import HomeScreen
@@ -125,10 +125,10 @@ class MedReminderApp(MDApp):
         saved_dark = get_dark_mode()
         # Khởi tạo ThemeManager (singleton)
         self.theme_manager = ThemeManager()
-        # Áp dụng màu theo setting đã lưu
-        self._apply_colors(is_dark=saved_dark)
-        # Đăng ký callback khi theme thay đổi
+        # Đăng ký callback trước khi set_theme để đồng bộ AppColors + is_dark với setting đã lưu
         self.theme_manager.bind(on_theme_changed=self._on_theme_changed)
+        # set_theme cập nhật theme_manager.is_dark + AppColors + gọi _apply_colors qua callback
+        self.theme_manager.set_theme(saved_dark)
 
     def build(self):
         # --- Cấu hình Theme Material Design ---
@@ -143,7 +143,7 @@ class MedReminderApp(MDApp):
                 Builder.load_file(os.path.join(kv_dir, kv_file))
 
         # --- Load layout chính (chứa ScreenManager) ---
-        return Builder.load_file(os.path.join(kv_dir, "..", "app_root.kv"))
+        return Builder.load_file(os.path.join(kv_dir, "app_root.kv"))
 
     def _on_theme_changed(self, *args):
         """Callback khi ThemeManager thay đổi → cập nhật MDApp theme + màu."""
@@ -157,7 +157,7 @@ class MedReminderApp(MDApp):
 
     def set_dark_mode(self, enabled: bool):
         """Đặt chế độ Dark Mode cụ thể."""
-        from app_settings import set_dark_mode
+        from app_core.app_settings import set_dark_mode
         set_dark_mode(enabled)
         self.theme_manager.set_theme(enabled)
 

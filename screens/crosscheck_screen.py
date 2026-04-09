@@ -30,6 +30,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDIconButton
 from kivymd.uix.snackbar import MDSnackbar
 from kivy.uix.popup import Popup
+from data.schedule_store import schedule_store
 from kivy.properties import (
     BooleanProperty,
     StringProperty,
@@ -110,10 +111,10 @@ class MedEditCard(MDCard):
             time_str = slot.get("time", "")
             note_str = slot.get("note", "")
             slot_widget = MedScheduleSlot(
-                time_str=time_str,
-                note_str=note_str,
-                index=i,
-                parent_card=self,
+                time_str,
+                note_str,
+                i,
+                self,
             )
             container.add_widget(slot_widget)
 
@@ -267,13 +268,20 @@ class CrossCheckScreen(MDScreen):
         saved_schedule = []
         for child in container.children:
             if isinstance(child, MedEditCard):
-                saved_schedule.append({
-                    "name": child.med_name,
-                    "dosage": child.med_dosage.replace("Liều: ", ""),
-                    "schedule": list(child.slots),
-                })
+                # Chuyển đổi slots từ MedEditCard sang định dạng SAMPLE_SCHEDULE
+                for slot in child.slots:
+                    saved_schedule.append({
+                        "name": child.med_name,
+                        "dosage": child.med_dosage.replace("Liều: ", ""),
+                        "time": slot.get("time", ""),
+                        "note": slot.get("note", ""),
+                        "taken": False,
+                    })
 
-        print(f"[CrossCheckScreen] Da luu lich: {saved_schedule}")
+        # Ghi vào shared store
+        schedule_store.save(saved_schedule)
+
+        print(f"[CrossCheckScreen] Da luu {len(saved_schedule)} muc: {saved_schedule}")
 
         MDSnackbar(
             MDLabel(
@@ -284,6 +292,7 @@ class CrossCheckScreen(MDScreen):
             size_hint_x=0.95,
         ).open()
 
+        # Chuyển về home — HomeScreen.on_enter sẽ load lại từ store
         self.manager.current = "home"
 
     def go_back(self):

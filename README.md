@@ -112,6 +112,8 @@ App không cho nhập giờ tự do. Tất cả khung giờ được **chuẩn h
 ### 5.1. Cài đặt thư viện
 
 ```bash
+pip install -r config/requirements.txt
+# hoặc thủ công:
 pip install --user kivy kivymd pillow
 pip install langchain langchain-openai langgraph python-dotenv  # (tùy chọn)
 ```
@@ -125,11 +127,11 @@ python main.py
 
 ### 5.3. Lệnh Admin (test & debug)
 
-Dùng `admin_commands.py` để quản lý ngày giờ, ảnh, và chạy app.
+Dùng `admin/admin_commands.py` để quản lý ngày giờ, ảnh, và chạy app.
 
 ```bash
 cd G:\AI_THUC_CHIEN_20K_2026_K1\test_app\App1
-python admin_commands.py <command>
+python admin/admin_commands.py <command>
 ```
 
 | Lệnh | Mô tả |
@@ -147,21 +149,21 @@ python admin_commands.py <command>
 
 ```bash
 # Đặt giờ trước 1 phút -> alarm sẽ trigger đúng giờ mốc thuốc
-python admin_commands.py set-date "08/04/2026 06:59:00"
-python admin_commands.py run-app
+python admin/admin_commands.py set-date "08/04/2026 06:59:00"
+python admin/admin_commands.py run-app
 
 # Reset về ngày thực
-python admin_commands.py reset-date
+python admin/admin_commands.py reset-date
 ```
 
 #### Ví dụ test ảnh đơn thuốc:
 
 ```bash
 # Tạo ảnh mới (bỏ cache)
-python admin_commands.py gen-image
+python admin/admin_commands.py gen-image
 
 # Mở xem ảnh
-python admin_commands.py show-image
+python admin/admin_commands.py show-image
 ```
 
 #### Các format ngày giờ hỗ trợ:
@@ -176,45 +178,54 @@ python admin_commands.py show-image
 
 ### 5.4. Đồng hồ trên Home và nhắc thuốc
 
-- **Không có file `.app_datetime`:** `get_app_now()` = giờ hệ thống; đồng hồ cập nhật mỗi giây; alarm so khớp cùng nguồn thời gian đó.
-- **Có file `.app_datetime` (lệnh `set-date`):** App lưu **mốc thời gian ảo** và cộng thêm **thời gian thực đã trôi** kể từ lần đọc đầu trong phiên chạy → đồng hồ **vẫn chạy từng giây** (không còn “đứng im” như chỉ đọc một chuỗi cố định). `AlarmService` cũng dùng `get_app_now()`, nên nhắc thuốc **không lệch** so với số giờ hiển thị.
+- **Không có file `config/.app_datetime`:** `get_app_now()` = giờ hệ thống; đồng hồ cập nhật mỗi giây; alarm so khớp cùng nguồn thời gian đó.
+- **Có file `config/.app_datetime` (lệnh `set-date`):** App lưu **mốc thời gian ảo** và cộng thêm **thời gian thực đã trôi** kể từ lần đọc đầu trong phiên chạy → đồng hồ **vẫn chạy từng giây** (không còn “đứng im” như chỉ đọc một chuỗi cố định). `AlarmService` cũng dùng `get_app_now()`, nên nhắc thuốc **không lệch** so với số giờ hiển thị.
 - **Trên giao diện:** giờ/ngày/thứ bind qua `StringProperty` (`clock_display`, `date_display`, `day_display`) để Kivy tự làm mới nhãn mỗi khi tick.
 
 ### 5.5. Âm thanh báo thức
 
 - **30 file MP3** đã copy từ Mewdicate vào `assets/sounds/` (pills.mp3, bell.mp3, ringtone_*.mp3, notification_*.mp3...).
-- **Cài đặt → Chọn âm thanh:** danh sách đầy đủ file trong thư mục; lưu vào `.app_settings.json` (`alarm_sound_file`).
+- **Cài đặt → Chọn âm thanh:** danh sách đầy đủ file trong thư mục; lưu vào `config/.app_settings.json` (`alarm_sound_file`).
 - **Lặp cho đến khi xử lý xong:** nhạc lặp vô hạn (`loops=-1` với pygame) hoặc beep lặp (Clock); rung lặp mỗi ~2 giây; gọi `stop_alarm()` khi bấm **Đã uống** hoặc **Trì hoãn** trên popup.
 - Mặc định: `pills.mp3`.
 - Phát bằng **pygame.mixer**; trên Windows fallback sang **winsound** nếu pygame lỗi.
-- **Tắt/bật âm thanh / rung** trong mục **Cài đặt** → nhớ qua các lần chạy (file `.app_settings.json`).
+- **Tắt/bật âm thanh / rung** trong mục **Cài đặt** → nhớ qua các lần chạy (file `config/.app_settings.json`).
 
 ---
 
 ## 6. Cấu trúc file
 
 ```
-App1/
+App5/   (thư mục gốc — chỉ giữ main.py, README và các file .md ở ngoài)
 ├── main.py                    # Entry point
-├── app_datetime.py           # Quản lý ngày giờ (file cache .app_datetime)
-├── app_settings.py           # Lưu Dark Mode / Sound / Vibration (.app_settings.json)
-├── sound_manager.py         # Phát MP3 + Rung (pygame.mixer / winsound)
-├── admin_commands.py        # Lệnh admin: date, gen-image, run-app...
-├── app_root.kv              # Layout gốc (ScreenManager)
+├── README.md
+├── spec-draft.md, walkthrough.md, HƯỚNG_DẪN_BUILD_APK.md
 │
-├── assets/
-│   ├── prescription_handwritten.png  # Ảnh đơn thuốc (PIL, có cache)
-│   ├── icons/
-│   │   └── medications/             # 42 icon thuốc PNG (từ Mewdicate)
-│   └── sounds/                     # 30 file MP3 (từ Mewdicate)
-│
+├── app_core/                  # Theme, âm thanh, cài đặt, thời gian ảo
+│   ├── theme_manager.py
+│   ├── sound_manager.py
+│   ├── app_settings.py        # → ghi config/.app_settings.json
+│   ├── app_datetime.py        # → ghi config/.app_datetime
+│   └── paths.py
+├── admin/
+│   └── admin_commands.py      # CLI: date, gen-image, run-app...
+├── packaging/
+│   ├── buildozer.spec, build_apk.py, BUILD_GUIDE.py, *.sh
+├── config/
+│   ├── requirements.txt, .env.example (và .env khi có)
 ├── kv/                      # UI Layer
+│   ├── app_root.kv          # Layout gốc (ScreenManager)
 │   ├── home_screen.kv
 │   ├── ai_scan_screen.kv
 │   ├── crosscheck_screen.kv
 │   ├── chatbot_screen.kv
 │   ├── alarm_popup.kv
 │   └── settings_screen.kv  # Dark/Light Mode toggle
+│
+├── assets/
+│   ├── prescription_handwritten.png
+│   ├── icons/medications/
+│   └── sounds/
 │
 ├── screens/                 # Logic Layer
 │   ├── home_screen.py      # (AlarmPopup, MedCard, IconImage, nút khóa/mở)

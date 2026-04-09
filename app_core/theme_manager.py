@@ -10,7 +10,7 @@
    Dựa trên màu sắc từ Mewdicate APK decompile.
 
  Sử dụng:
-   from theme_manager import AppColors, ThemeManager
+   from app_core.theme_manager import AppColors, ThemeManager
    from kivy.properties import ListProperty
 
    # Trong class Widget:

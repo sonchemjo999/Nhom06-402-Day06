@@ -10,14 +10,14 @@ version = 1.0.0
 # === NGUỒN MÃ ===
 source.include_exts = py,png,jpg,kv,atlas,ttf,mp3,json,txt,svg
 
-# Thư mục chính của source code
-source.dir = .
+# Thư mục chính của source code (spec nằm trong packaging/ → project root là ..)
+source.dir = ..
 
-# Loại trừ các file không cần thiết
-excludes = admin_commands.py, build_apk.py, icon_painter.py, icon_converter.py, create_med_icons.py, prescription_image.py, app_datetime.py
+# Không đóng gói script/tool/dev
+source.exclude_dirs = tool_test,packaging,admin,docs,.git,bin,.buildozer,venv,__pycache__
 
 # === PHỤ THUỘC PYTHON ===
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,Pillow,pygame,android
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,Pillow,android
 
 # === CẤU HÌNH ANDROID ===
 # Quyền Android

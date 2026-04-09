@@ -256,11 +256,12 @@
 
             BoxLayout:
                 orientation: "horizontal"
-                spacing: "4dp"
+                spacing: "0dp"
 
+                # Bốn mục cùng kiểu: icon + caption, căn đều
                 BoxLayout:
                     orientation: "vertical"
-                    size_hint_x: 0.22
+                    size_hint_x: 0.25
                     spacing: "0dp"
 
                     MDIconButton:
@@ -278,55 +279,62 @@
                         size_hint_y: None
                         height: "16dp"
 
-                Widget:
-                    size_hint_x: 0.06
-
-                AnchorLayout:
-                    size_hint_x: 0.28
-                    anchor_y: "center"
-
-                    MDRaisedButton:
-                        text: "QUÉT ĐƠN"
-                        font_size: "11sp"
-                        size_hint: None, None
-                        width: "88dp"
-                        height: "48dp"
-                        md_bg_color: app.theme_cls.primary_color
-                        text_color: 1, 1, 1, 1
-                        radius: [24]
-                        on_release: root.go_to_scan()
-
-                Widget:
-                    size_hint_x: 0.06
-
                 BoxLayout:
                     orientation: "vertical"
-                    size_hint_x: 0.22
+                    size_hint_x: 0.25
+                    spacing: "0dp"
+
                     MDIconButton:
-                        icon: "message-text"
+                        icon: "camera-outline"
                         theme_text_color: "Custom"
                         text_color: app.text_secondary_color
-                        on_release: root.go_to_chatbot()
+                        on_release: root.go_to_scan()
+
                     MDLabel:
-                        text: "Chat AI"
+                        text: "Quét đơn"
                         font_style: "Caption"
-                        theme_text_color: "Secondary"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
                         halign: "center"
                         size_hint_y: None
                         height: "16dp"
 
                 BoxLayout:
                     orientation: "vertical"
-                    size_hint_x: 0.22
+                    size_hint_x: 0.25
+                    spacing: "0dp"
+
+                    MDIconButton:
+                        icon: "message-text"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
+                        on_release: root.go_to_chatbot()
+
+                    MDLabel:
+                        text: "Chat AI"
+                        font_style: "Caption"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
+                        halign: "center"
+                        size_hint_y: None
+                        height: "16dp"
+
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_x: 0.25
+                    spacing: "0dp"
+
                     MDIconButton:
                         icon: "cog"
                         theme_text_color: "Custom"
                         text_color: app.text_secondary_color
                         on_release: root.go_to_settings()
+
                     MDLabel:
                         text: "Cài đặt"
                         font_style: "Caption"
-                        theme_text_color: "Secondary"
+                        theme_text_color: "Custom"
+                        text_color: app.text_secondary_color
                         halign: "center"
                         size_hint_y: None
                         height: "16dp"

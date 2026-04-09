@@ -8,10 +8,9 @@
 
 import os
 
-# Thư mục lưu icons
-ICONS_DIR = os.path.join(
-    os.path.dirname(__file__), "assets", "icons", "medications"
-)
+# Thư mục lưu icons (project root)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ICONS_DIR = os.path.join(_PROJECT_ROOT, "assets", "icons", "medications")
 os.makedirs(ICONS_DIR, exist_ok=True)
 
 
