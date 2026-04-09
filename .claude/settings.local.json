@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv main.py src/main.py)",
+      "Bash(mv app_settings.py src/app_config/settings.py)",
+      "Bash(mv app_datetime.py src/app_config/datetime_config.py)",
+      "Bash(mv theme_manager.py src/app_config/theme.py)",
+      "Bash(mv ai_core/* src/core/ai/)",
+      "Bash(touch src/__init__.py)",
+      "Bash(touch src/app_config/__init__.py)",
+      "Bash(touch src/ui/__init__.py)",
+      "Bash(touch src/ui/kv/__init__.py)",
+      "Bash(touch src/ui/styles/__init__.py)",
+      "Bash(cat)"
+    ]
+  }
+}

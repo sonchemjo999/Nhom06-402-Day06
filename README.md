@@ -119,17 +119,17 @@ pip install langchain langchain-openai langgraph python-dotenv  # (tùy chọn)
 ### 5.2. Chạy ứng dụng
 
 ```bash
-cd G:\AI_THUC_CHIEN_20K_2026_K1\test_app\App1
+cd E:\VinAI\Nhom06-402-Day06\src
 python main.py
 ```
 
 ### 5.3. Lệnh Admin (test & debug)
 
-Dùng `admin_commands.py` để quản lý ngày giờ, ảnh, và chạy app.
+Dùng `core/admin/commands.py` để quản lý ngày giờ, ảnh, và chạy app.
 
 ```bash
-cd G:\AI_THUC_CHIEN_20K_2026_K1\test_app\App1
-python admin_commands.py <command>
+cd E:\VinAI\Nhom06-402-Day06\src
+python core/admin/commands.py <command>
 ```
 
 | Lệnh | Mô tả |
@@ -147,21 +147,21 @@ python admin_commands.py <command>
 
 ```bash
 # Đặt giờ trước 1 phút -> alarm sẽ trigger đúng giờ mốc thuốc
-python admin_commands.py set-date "08/04/2026 06:59:00"
-python admin_commands.py run-app
+python core/admin/commands.py set-date "08/04/2026 06:59:00"
+python core/admin/commands.py run-app
 
 # Reset về ngày thực
-python admin_commands.py reset-date
+python core/admin/commands.py reset-date
 ```
 
 #### Ví dụ test ảnh đơn thuốc:
 
 ```bash
 # Tạo ảnh mới (bỏ cache)
-python admin_commands.py gen-image
+python core/admin/commands.py gen-image
 
 # Mở xem ảnh
-python admin_commands.py show-image
+python core/admin/commands.py show-image
 ```
 
 #### Các format ngày giờ hỗ trợ:
@@ -182,7 +182,7 @@ python admin_commands.py show-image
 
 ### 5.5. Âm thanh báo thức
 
-- **30 file MP3** đã copy từ Mewdicate vào `assets/sounds/` (pills.mp3, bell.mp3, ringtone_*.mp3, notification_*.mp3...).
+- **30 file MP3** đã copy từ Mewdicate vào `src/assets/sounds/` (pills.mp3, bell.mp3, ringtone_*.mp3, notification_*.mp3...).
 - **Cài đặt → Chọn âm thanh:** danh sách đầy đủ file trong thư mục; lưu vào `.app_settings.json` (`alarm_sound_file`).
 - **Lặp cho đến khi xử lý xong:** nhạc lặp vô hạn (`loops=-1` với pygame) hoặc beep lặp (Clock); rung lặp mỗi ~2 giây; gọi `stop_alarm()` khi bấm **Đã uống** hoặc **Trì hoãn** trên popup.
 - Mặc định: `pills.mp3`.
@@ -194,47 +194,38 @@ python admin_commands.py show-image
 ## 6. Cấu trúc file
 
 ```
-App1/
+src/
 ├── main.py                    # Entry point
-├── app_datetime.py           # Quản lý ngày giờ (file cache .app_datetime)
-├── app_settings.py           # Lưu Dark Mode / Sound / Vibration (.app_settings.json)
-├── sound_manager.py         # Phát MP3 + Rung (pygame.mixer / winsound)
-├── admin_commands.py        # Lệnh admin: date, gen-image, run-app...
-├── app_root.kv              # Layout gốc (ScreenManager)
-│
-├── assets/
-│   ├── prescription_handwritten.png  # Ảnh đơn thuốc (PIL, có cache)
-│   ├── icons/
-│   │   └── medications/             # 42 icon thuốc PNG (từ Mewdicate)
-│   └── sounds/                     # 30 file MP3 (từ Mewdicate)
-│
-├── kv/                      # UI Layer
-│   ├── home_screen.kv
-│   ├── ai_scan_screen.kv
-│   ├── crosscheck_screen.kv
-│   ├── chatbot_screen.kv
-│   ├── alarm_popup.kv
-│   └── settings_screen.kv  # Dark/Light Mode toggle
-│
-├── screens/                 # Logic Layer
-│   ├── home_screen.py      # (AlarmPopup, MedCard, IconImage, nút khóa/mở)
-│   ├── ai_scan_screen.py  # (AI core integration)
-│   ├── crosscheck_screen.py # (MedEditCard, TimeSlotPopup)
-│   ├── chatbot_screen.py   # (Triage logic)
-│   └── settings_screen.py  # (Dark/Light Mode)
-│
-├── services/
-│   └── alarm_service.py    # Loop nhắc 5 lần
-│
-├── theme_manager.py         # Dark/Light Mode + EventDispatcher
-│
-├── ai_core/
-│   ├── agent.py             # LangGraph agent + fallback mock
-│   └── tools.py            # Mock OCR
-│
-└── data/
-    ├── mock_data.py        # Dữ liệu mẫu
-    └── prescription_image.py # Tạo ảnh đơn thuốc (cache)
+├── app_config/                # Cấu hình app (Theme, Settings, Datetime)
+│   ├── datetime_config.py     # Quản lý ngày giờ
+│   ├── settings.py            # Lưu Dark Mode / Sound / Vibration (.app_settings.json)
+│   └── theme.py               # ThemeManager
+├── core/                      # Logic lõi, AI, Utilities
+│   ├── admin/
+│   │   └── commands.py        # Lệnh admin: date, gen-image, run-app...
+│   └── ai/                    # AI agents, tools, prompt
+│       ├── agent.py           # LangGraph agent + fallback mock
+│       └── tools.py           # Mock OCR
+├── assets/                    # Hình ảnh, âm thanh, icon, mock data
+│   ├── data/
+│   │   ├── mock_data.py       # Dữ liệu mẫu
+│   │   └── prescription_image.py # Tạo ảnh đơn thuốc (cache)
+│   ├── icons/                 # Icon thuốc PNG, SVG
+│   └── sounds/                # File MP3 báo thức
+├── services/                  # Các service chạy ngầm
+│   ├── alarm_service.py       # Loop nhắc thuốc
+│   └── sound_manager.py       # Phát MP3 + Rung
+├── screens/                   # Logic từng màn hình
+│   ├── home_screen.py
+│   ├── ai_scan_screen.py
+│   ├── crosscheck_screen.py
+│   ├── chatbot_screen.py
+│   └── settings_screen.py
+└── ui/                        # Giao diện hiển thị
+    ├── kv/                    # UI Layouts (KivyMD)
+    │   ├── app_root.kv        # Layout gốc (ScreenManager)
+    │   └── ...
+    └── styles/                # Styles, loaders, icons builder
 ```
 
 ---
