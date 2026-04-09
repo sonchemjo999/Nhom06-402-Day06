@@ -1,205 +1,365 @@
 """
-=============================================================================
- AI Core - Agent đọc đơn thuốc (LangGraph)
-=============================================================================
- File: ai_core/agent.py
- Mô tả: Agent AI sử dụng kiến trúc LangGraph để đọc và phân tích đơn thuốc.
-         Kiến trúc tham khảo từ lab buổi 4 (TravelBuddy), đã chuyển đổi
-         sang Medical domain.
+AI Core - OCR đơn thuốc bằng PaddleOCR.
 
- Kiến trúc:
-   [User Input] → [Agent Node] → [Tool: extract_prescription] → [Agent Node] → [JSON Result]
-
- Fallback: Nếu không có API key hoặc gặp lỗi, tự động fallback về mock data.
-=============================================================================
+Luồng:
+  Ảnh đơn thuốc -> PaddleOCR -> heuristic parser -> JSON cấu trúc
 """
 
+from __future__ import annotations
+
 import os
-import sys
-import json
-from typing import Annotated
-from typing_extensions import TypedDict
+import re
+from pathlib import Path
+from statistics import mean
 
-# Thêm project root vào path
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+from dotenv import load_dotenv
 
-from data.mock_data import MOCK_RESULT_SUCCESS, MOCK_RESULT_FAILURE
-from ai_core.tools import extract_prescription, get_mock_prescription
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-# Flag kiểm tra có đủ dependencies không
-LANGGRAPH_AVAILABLE = False
-try:
-    from langgraph.graph import StateGraph, START, END
-    from langgraph.graph.message import add_messages
-    from langgraph.prebuilt import ToolNode, tools_condition
-    from langgraph.checkpoint.memory import MemorySaver
-    from langchain_openai import ChatOpenAI
-    from langchain_core.messages import SystemMessage, HumanMessage
-    from dotenv import load_dotenv
+load_dotenv(PROJECT_ROOT / ".env")
 
-    load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
-    LANGGRAPH_AVAILABLE = True
-except ImportError:
-    print("[AI Core] [!] LangGraph/LangChain chua cai dat. Se dung mock data.")
+_OCR_ENGINE = None
+
+ROUTE_PATTERNS = [
+    ("nhỏ mắt", "nhỏ mắt"),
+    ("nhỏ mũi", "nhỏ mũi"),
+    ("xịt", "xịt"),
+    ("bôi", "bôi"),
+    ("đặt", "đặt"),
+    ("tiêm", "tiêm"),
+    ("uống", "uống"),
+]
 
 
-# ===== Đọc System Prompt =====
-SYSTEM_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "system_prompt.txt")
-with open(SYSTEM_PROMPT_PATH, "r", encoding="utf-8") as f:
-    SYSTEM_PROMPT = f.read()
+def _ocr_lang() -> str:
+    return os.getenv("PADDLE_OCR_LANG", "latin").strip() or "latin"
 
 
-# ===== State cho LangGraph =====
-class AgentState(TypedDict):
-    messages: Annotated[list, add_messages] if LANGGRAPH_AVAILABLE else list
+def _ocr_use_angle_cls() -> bool:
+    return os.getenv("PADDLE_OCR_USE_ANGLE_CLS", "true").strip().lower() != "false"
 
 
-def _build_graph():
-    """
-    Xây dựng LangGraph agent cho đọc đơn thuốc.
-    Trả về compiled graph hoặc None nếu thiếu dependencies.
-    """
-    if not LANGGRAPH_AVAILABLE:
-        return None
-
-    api_key = os.getenv("OPENAI_API_KEY", "")
-    if not api_key or api_key.startswith("sk-proj-XXXX"):
-        print("[AI Core] ⚠️ OPENAI_API_KEY chưa được cấu hình. Sẽ dùng mock data.")
-        return None
+def _get_ocr_engine():
+    global _OCR_ENGINE
+    if _OCR_ENGINE is not None:
+        return _OCR_ENGINE
 
     try:
-        # Khởi tạo LLM và Tools
-        tools_list = [extract_prescription]
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-        llm_with_tools = llm.bind_tools(tools_list)
+        from paddleocr import PaddleOCR
+    except ImportError as exc:
+        raise RuntimeError(
+            "Thiếu PaddleOCR hoặc PaddlePaddle. Hãy cài dependency theo requirements.txt."
+        ) from exc
 
-        def agent_node(state: AgentState) -> dict:
-            """Node agent: gọi LLM để phân tích đơn thuốc."""
-            messages = state["messages"]
-            if not isinstance(messages[0], SystemMessage):
-                messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
-            response = llm_with_tools.invoke(messages)
-            return {"messages": [response]}
+    _OCR_ENGINE = PaddleOCR(
+        use_angle_cls=_ocr_use_angle_cls(),
+        lang=_ocr_lang(),
+        show_log=False,
+    )
+    return _OCR_ENGINE
 
-        # Xây dựng graph
-        builder = StateGraph(AgentState)
-        builder.add_node("agent", agent_node)
-        builder.add_node("tools", ToolNode(tools_list))
-        builder.add_edge(START, "agent")
-        builder.add_conditional_edges("agent", tools_condition)
-        builder.add_edge("tools", "agent")
 
-        memory = MemorySaver()
-        graph = builder.compile(checkpointer=memory)
-        print("[AI Core] [OK] LangGraph agent da san sang!")
-        return graph
+def _normalize_space(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "")).strip()
 
-    except Exception as e:
-        print(f"[AI Core] [X] Loi khoi tao LangGraph: {e}")
+
+def _extract_ocr_lines(image_path: str) -> list[dict]:
+    ocr = _get_ocr_engine()
+    result = ocr.ocr(image_path, cls=_ocr_use_angle_cls())
+    lines = []
+    if not result:
+        return lines
+
+    for page in result:
+        if not page:
+            continue
+        for item in page:
+            if not item or len(item) < 2:
+                continue
+            text = _normalize_space(item[1][0] if item[1] else "")
+            confidence = float(item[1][1]) if item[1] and len(item[1]) > 1 else 0.0
+            if text:
+                lines.append({"text": text, "confidence": confidence})
+    return lines
+
+
+def _looks_like_medication_start(text: str) -> bool:
+    normalized = text.lower()
+    return bool(
+        re.match(r"^\s*\d+[\.\)]\s*", normalized)
+        or ("mg" in normalized or "ml" in normalized or "mcg" in normalized)
+    )
+
+
+def _group_medication_lines(lines: list[dict]) -> list[list[dict]]:
+    groups = []
+    current = []
+    for line in lines:
+        text = line["text"]
+        if _looks_like_medication_start(text) and current:
+            groups.append(current)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        groups.append(current)
+    return groups
+
+
+def _detect_route(text: str) -> str:
+    lowered = text.lower()
+    for needle, route in ROUTE_PATTERNS:
+        if needle in lowered:
+            return route
+    return "UNCLEAR"
+
+
+def _extract_strength(text: str) -> str | None:
+    match = re.search(r"\b\d+(?:[.,]\d+)?\s?(?:mg|g|mcg|µg|ml|iu|ui|%)\b", text, re.I)
+    return match.group(0) if match else None
+
+
+def _extract_days(text: str) -> int | None:
+    match = re.search(r"(\d+)\s*ngày", text, re.I)
+    return int(match.group(1)) if match else None
+
+
+def _extract_frequency(text: str) -> str | None:
+    patterns = [
+        r"\d+\s*lần\s*/\s*ngày",
+        r"ngày\s*\d+\s*lần",
+        r"sáng\s*trưa\s*tối",
+        r"sáng\s*chiều",
+        r"sáng\s*tối",
+        r"trưa\s*tối",
+        r"khi\s*đau",
+        r"khi\s*sốt",
+        r"prn",
+    ]
+    lowered = text.lower()
+    for pattern in patterns:
+        match = re.search(pattern, lowered, re.I)
+        if match:
+            return match.group(0)
+    return None
+
+
+def _extract_timing_notes(text: str) -> str | None:
+    note_patterns = [
+        r"sau ăn(?:\s*\d+\s*giờ)?",
+        r"trước ăn(?:\s*\d+\s*phút)?",
+        r"trước ngủ",
+        r"sáng(?:\s*\d+h)?(?:,\s*trưa\s*\d+h,\s*tối\s*\d+h)?",
+        r"trưa(?:\s*\d+h)?",
+        r"tối(?:\s*\d+h)?",
+        r"khi đau",
+        r"khi sốt",
+        r"hòa nước",
+    ]
+    lowered = text.lower()
+    found = []
+    for pattern in note_patterns:
+        for match in re.finditer(pattern, lowered, re.I):
+            value = _normalize_space(match.group(0))
+            if value not in found:
+                found.append(value)
+    if found:
+        return ", ".join(found)
+    return None
+
+
+def _extract_dosage_per_use(text: str) -> str | None:
+    match = re.search(
+        r"(?:uống|bôi|nhỏ mắt|nhỏ mũi|xịt|đặt|tiêm)\s+(\d+(?:[\/.,]\d+)?\s*(?:viên|v|gói|ống|ml|giọt|thìa|muỗng))",
+        text,
+        re.I,
+    )
+    return _normalize_space(match.group(1)) if match else None
+
+
+def _extract_schedule(text: str) -> list[dict]:
+    schedule = []
+    for hour, minute in re.findall(r"(\d{1,2})\s*(?:h|:)\s*(\d{0,2})", text, re.I):
+        hh = int(hour)
+        mm = int(minute) if minute else 0
+        time_str = f"{hh:02d}:{mm:02d}"
+        if not any(item["time"] == time_str for item in schedule):
+            schedule.append({"time": time_str, "note": None})
+    return schedule
+
+
+def _extract_name(text: str) -> str:
+    cleaned = re.sub(r"^\s*\d+[\.\)]\s*", "", text).strip()
+    stop_words = [
+        "uống",
+        "bôi",
+        "nhỏ mắt",
+        "nhỏ mũi",
+        "xịt",
+        "đặt",
+        "tiêm",
+        "thời gian",
+        "ngày",
+    ]
+    end_index = len(cleaned)
+    lowered = cleaned.lower()
+    for word in stop_words:
+        idx = lowered.find(word)
+        if idx != -1:
+            end_index = min(end_index, idx)
+    candidate = _normalize_space(cleaned[:end_index].strip(" -,:;"))
+    return candidate or "UNCLEAR"
+
+
+def _medication_from_group(group: list[dict]) -> dict | None:
+    raw_text = _normalize_space(" ".join(item["text"] for item in group))
+    if len(raw_text) < 4:
         return None
 
+    confidences = [item["confidence"] for item in group if item.get("confidence") is not None]
+    avg_conf = mean(confidences) if confidences else 0.0
 
-# Khởi tạo graph (lazy - chỉ build khi cần)
-_graph = None
-_graph_initialized = False
+    name = _extract_name(raw_text)
+    strength = _extract_strength(raw_text)
+    dosage_per_use = _extract_dosage_per_use(raw_text)
+    route = _detect_route(raw_text)
+    frequency_text = _extract_frequency(raw_text)
+    days = _extract_days(raw_text)
+    timing_notes = _extract_timing_notes(raw_text)
+    schedule = _extract_schedule(raw_text)
+    is_prn = any(token in raw_text.lower() for token in ["khi đau", "khi sốt", "prn"])
+
+    uncertain_fields = []
+    if not name or name == "UNCLEAR":
+        name = "UNCLEAR"
+        uncertain_fields.append("name")
+    if not strength:
+        uncertain_fields.append("strength")
+    if not dosage_per_use:
+        uncertain_fields.append("dosage_per_use")
+    if route == "UNCLEAR":
+        uncertain_fields.append("route")
+
+    med_conf = round(min(0.98, max(0.25, avg_conf)), 2)
+    if len(uncertain_fields) >= 2:
+        med_conf = round(max(0.35, med_conf - 0.18), 2)
+    elif uncertain_fields:
+        med_conf = round(max(0.45, med_conf - 0.08), 2)
+
+    return {
+        "raw_text": raw_text,
+        "name": name,
+        "strength": strength,
+        "dosage_per_use": dosage_per_use,
+        "route": route,
+        "frequency_text": frequency_text,
+        "days": days,
+        "timing_notes": timing_notes,
+        "is_prn": is_prn,
+        "confidence": med_conf,
+        "uncertain_fields": uncertain_fields,
+        "schedule": schedule,
+    }
 
 
-def _get_graph():
-    """Lazy initialization cho graph."""
-    global _graph, _graph_initialized
-    if not _graph_initialized:
-        _graph = _build_graph()
-        _graph_initialized = True
-    return _graph
+def _build_result_from_lines(lines: list[dict]) -> dict:
+    if not lines:
+        return {
+            "status": "failure",
+            "confidence": 0.0,
+            "ask_human": True,
+            "message": "Không đọc được nội dung từ ảnh đơn thuốc.",
+            "medications": [],
+            "review_flags": ["EMPTY_OCR_RESULT"],
+        }
+
+    groups = _group_medication_lines(lines)
+    medications = []
+    for group in groups:
+        med = _medication_from_group(group)
+        if med is not None and (
+            med["name"] != "UNCLEAR"
+            or med["strength"]
+            or med["dosage_per_use"]
+            or med["frequency_text"]
+        ):
+            medications.append(med)
+
+    if not medications:
+        return {
+            "status": "failure",
+            "confidence": 0.15,
+            "ask_human": True,
+            "message": "Hệ thống chưa tách được thông tin thuốc từ ảnh. Vui lòng kiểm tra lại chất lượng ảnh.",
+            "medications": [],
+            "review_flags": ["NO_MEDICATION_EXTRACTED"],
+        }
+
+    med_confidences = [med["confidence"] for med in medications]
+    overall_conf = round(mean(med_confidences), 2)
+    has_uncertain = any(med["uncertain_fields"] for med in medications)
+
+    status = "success"
+    ask_human = False
+    review_flags = []
+    if overall_conf < 0.5:
+        status = "failure"
+        ask_human = True
+        medications = []
+        review_flags.append("LOW_CONFIDENCE_OCR")
+    elif has_uncertain or overall_conf < 0.82:
+        status = "partial"
+        ask_human = True
+        review_flags.append("CHECK_MANUALLY")
+
+    if status == "success":
+        message = "Hệ thống đã đọc được đơn thuốc. Vui lòng kiểm tra lại với ảnh gốc trước khi lưu."
+    elif status == "partial":
+        message = "Hệ thống đã đọc được một phần đơn thuốc. Vui lòng kiểm tra lại các mục chưa rõ."
+    else:
+        message = "Hệ thống chưa đọc đủ rõ đơn thuốc. Vui lòng chụp lại ảnh rõ hơn hoặc nhập tay."
+
+    return {
+        "status": status,
+        "confidence": overall_conf if status != "failure" else min(overall_conf, 0.49),
+        "ask_human": ask_human,
+        "message": message,
+        "medications": medications,
+        "review_flags": review_flags,
+    }
 
 
-def _parse_ai_response(response_text: str) -> dict:
-    """
-    Parse response text từ AI thành dict chuẩn cho app.
+def scan_prescription_image(image_path: str) -> dict:
+    if not image_path or not os.path.exists(image_path):
+        return {
+            "status": "failure",
+            "confidence": 0.0,
+            "ask_human": True,
+            "message": "Không tìm thấy ảnh đơn thuốc để xử lý.",
+            "medications": [],
+            "review_flags": ["MISSING_IMAGE"],
+        }
 
-    Tham số:
-        response_text: Text trả về từ LLM (expected JSON)
-
-    Trả về:
-        dict với format: {status, confidence, message, medications}
-    """
     try:
-        # Thử parse JSON trực tiếp
-        data = json.loads(response_text)
-        return data
-    except json.JSONDecodeError:
-        # Thử tìm JSON trong response text
-        try:
-            start = response_text.index("{")
-            end = response_text.rindex("}") + 1
-            json_str = response_text[start:end]
-            data = json.loads(json_str)
-            return data
-        except (ValueError, json.JSONDecodeError):
-            # Không parse được → coi như failure
-            return {
-                "status": "failure",
-                "confidence": 0.0,
-                "message": "Không thể phân tích kết quả từ AI.",
-                "medications": []
-            }
+        lines = _extract_ocr_lines(image_path)
+        return _build_result_from_lines(lines)
+    except Exception as exc:
+        return {
+            "status": "failure",
+            "confidence": 0.0,
+            "ask_human": True,
+            "message": f"Lỗi khi chạy PaddleOCR: {exc}",
+            "medications": [],
+            "review_flags": ["PADDLE_OCR_FAILED"],
+        }
 
 
 def scan_prescription(case: str = "random") -> dict:
-    """
-    Hàm chính: Quét đơn thuốc bằng AI agent.
-    
-    Tham số:
-        case: "clear" = đơn rõ, "blurry" = đơn mờ, "random" = ngẫu nhiên
-    
-    Trả về:
-        dict: {status, confidence, message, medications}
-    
-    Fallback: Nếu AI agent không khả dụng, sử dụng mock data.
-    """
-    graph = _get_graph()
-
-    if graph is None:
-        # === FALLBACK: Dùng mock data ===
-        print("[AI Core] [Mock] Su dung mock data (AI agent khong kha dung)")
-        import random as rnd
-        if case == "clear":
-            return MOCK_RESULT_SUCCESS.copy()
-        elif case == "blurry":
-            return MOCK_RESULT_FAILURE.copy()
-        else:
-            return rnd.choice([MOCK_RESULT_SUCCESS, MOCK_RESULT_FAILURE]).copy()
-
-    # === REAL AI: Dùng LangGraph agent ===
-    try:
-        # Lấy đơn thuốc mock để gửi cho AI
-        prescription_text = get_mock_prescription(case)
-        user_message = (
-            f"Hãy đọc và phân tích đơn thuốc sau. "
-            f"Trả kết quả dưới dạng JSON thuần (không markdown).\n\n"
-            f"NỘI DUNG ĐƠN THUỐC:\n{prescription_text}"
-        )
-
-        import time
-        config = {"configurable": {"thread_id": f"scan_{int(time.time())}"}}
-        result = graph.invoke(
-            {"messages": [("human", user_message)]},
-            config=config
-        )
-
-        # Lấy response cuối cùng từ agent
-        final_message = result["messages"][-1]
-        response_text = final_message.content
-        print(f"[AI Core] [Bot] AI response: {response_text[:200]}...")
-
-        # Parse response thành dict
-        parsed = _parse_ai_response(response_text)
-        return parsed
-
-    except Exception as e:
-        print(f"[AI Core] [X] Loi khi goi AI: {e}")
-        # Fallback về mock khi gặp lỗi
-        import random as rnd
-        return rnd.choice([MOCK_RESULT_SUCCESS, MOCK_RESULT_FAILURE]).copy()
+    return {
+        "status": "failure",
+        "confidence": 0.0,
+        "ask_human": True,
+        "message": "Luồng scan cũ đã bị vô hiệu. Hãy dùng scan_prescription_image() với ảnh upload.",
+        "medications": [],
+        "review_flags": ["LEGACY_SCAN_DISABLED"],
+    }

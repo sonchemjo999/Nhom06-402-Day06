@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedReminder Web Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Vinmec Demo</p>
+        <h1>MedReminder Web</h1>
+      </div>
+      <div class="header-clock">
+        <div id="clockTime">--:--:--</div>
+        <div id="clockDate">--/--/----</div>
+      </div>
+    </header>
+
+    <nav class="tab-bar">
+      <a href="#home" data-route="home"><span class="tab-icon">▦</span><span>Trang chủ</span></a>
+      <a href="#home" data-route="hoso"><span class="tab-icon">☷</span><span>Hồ sơ</span></a>
+      <a href="#scan" data-route="scan"><span class="tab-icon">▣</span><span>Đặt lịch</span></a>
+      <a href="#home" data-route="thongbao"><span class="tab-icon">🔔</span><span>Thông báo</span></a>
+      <a href="#home" data-route="taikhoan"><span class="tab-icon">👤</span><span>Tài khoản</span></a>
+    </nav>
+
+    <main id="app"></main>
+  </div>
+
+  <template id="home-template">
+    <section class="page">
+      <section class="vinmec-home-hero">
+        <div class="vinmec-top">
+          <div>
+            <h2 class="vinmec-title">MyVinmec</h2>
+            <p class="vinmec-subtitle">Chăm sóc bằng tài năng, y đức và sự thấu cảm</p>
+          </div>
+          <div class="vinmec-tools">
+            <button class="circle-tool" type="button" title="Ưu đãi">⌁</button>
+            <button class="circle-tool" type="button" title="Tìm kiếm">⌕</button>
+          </div>
+        </div>
+
+        <div class="promo-card">
+          <div class="promo-copy">
+            <div class="promo-brand">VINMEC</div>
+            <h3>TIÊM PHÒNG CÚM</h3>
+            <p>Lá chắn đề kháng vững vàng cho cả gia đình</p>
+            <button class="promo-link" type="button">ĐĂNG KÝ NGAY</button>
+          </div>
+          <div class="promo-family">
+            <span class="family-dot dot-a"></span>
+            <span class="family-dot dot-b"></span>
+            <span class="family-dot dot-c"></span>
+            <div class="family-group">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="shortcut-panel">
+        <div class="shortcut-grid">
+          <button class="shortcut-item" type="button">
+            <span class="shortcut-icon">⌚</span>
+            <span class="shortcut-label">Lịch hẹn</span>
+          </button>
+          <button class="shortcut-item" type="button">
+            <span class="shortcut-icon">☎</span>
+            <span class="shortcut-label">Liên hệ</span>
+          </button>
+          <button class="shortcut-item" type="button">
+            <span class="shortcut-icon">☰</span>
+            <span class="shortcut-label">Cộng đồng<br>hỏi đáp ba...</span>
+          </button>
+          <button class="shortcut-item" type="button">
+            <span class="shortcut-icon">💉</span>
+            <span class="shortcut-label">Sổ tiêm</span>
+          </button>
+          <button class="shortcut-item" type="button" data-go="scan">
+            <span class="shortcut-icon accent">💊</span>
+            <span class="shortcut-badge">Mới</span>
+            <span class="shortcut-label strong">Nhắc nhở uống thuốc</span>
+          </button>
+          <button class="shortcut-item" type="button">
+            <span class="shortcut-icon">👶</span>
+            <span class="shortcut-label">Cẩm nang<br>làm mẹ</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="service-section">
+        <h3 class="service-heading">Dịch vụ mới</h3>
+        <article class="service-card" data-go="scan">
+          <div class="service-image teal">
+            <div class="doctor-figure doctor-a"></div>
+          </div>
+          <div class="service-copy">
+            <strong>Cổng dịch vụ khách hàng</strong>
+            <p>Nhanh - Tiện - Dễ dàng</p>
+          </div>
+          <span class="service-arrow">›</span>
+        </article>
+        <article class="service-card" data-go="chat">
+          <div class="service-image gold">
+            <div class="doctor-figure doctor-b"></div>
+          </div>
+          <div class="service-copy">
+            <strong>Đặt lịch nhanh - Xác nhận lịch tự động</strong>
+            <p>Xem ngay lịch khám, giờ khám với bác sĩ Vinmec bất cứ đâu</p>
+          </div>
+          <span class="service-arrow">›</span>
+        </article>
+      </section>
+
+      <button class="floating-chat" type="button" data-go="chat" aria-label="Mở chatbot">
+        <span>💬</span>
+      </button>
+    </section>
+  </template>
+
+  <template id="scan-template">
+    <section class="page">
+      <section class="panel scan-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">AI Scan</p>
+            <h3>Quét đơn thuốc để tạo dữ liệu đối chiếu</h3>
+          </div>
+        </div>
+        <p class="muted">Tải ảnh đơn thuốc từ máy lên để Gemini đọc trực tiếp nội dung từ ảnh. Kết quả trả về sẽ là JSON cấu trúc để dùng cho bước đối chiếu an toàn.</p>
+
+        <div class="upload-card">
+          <label class="upload-label" for="scanFile">
+            <span>Chọn ảnh đơn thuốc</span>
+            <input id="scanFile" type="file" accept="image/png,image/jpeg,image/webp">
+          </label>
+          <div id="selectedFileName" class="meta-note">Chưa chọn ảnh nào.</div>
+          <img id="scanImagePreview" class="prescription-image hidden" alt="Ảnh đơn thuốc đã chọn">
+        </div>
+
+        <div class="scan-controls">
+          <button class="btn btn-primary" id="scanBtn">Tải ảnh và quét bằng Gemini</button>
+        </div>
+
+        <div id="scanStatus" class="status-banner info">Chưa quét đơn thuốc.</div>
+      </section>
+    </section>
+  </template>
+
+  <template id="crosscheck-template">
+    <section class="page">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Cross-check</p>
+            <h3>Xác nhận y khoa trước khi lưu</h3>
+          </div>
+          <span id="crosscheckBadge" class="badge">Chưa có dữ liệu</span>
+        </div>
+
+        <div id="crosscheckAlert" class="status-banner warning">Bạn hãy quét đơn thuốc trước để xem dữ liệu đối chiếu.</div>
+
+        <div class="crosscheck-grid">
+          <div class="panel-subtle">
+            <h4>Form kết quả AI</h4>
+            <div id="medicationForm" class="medication-form empty-state">Chưa có dữ liệu đơn thuốc.</div>
+          </div>
+          <div class="panel-subtle">
+            <h4>Ảnh đơn thuốc gốc</h4>
+            <img id="prescriptionImage" class="prescription-image" alt="Ảnh đơn thuốc mô phỏng">
+          </div>
+        </div>
+
+        <label class="confirm-box">
+          <input type="checkbox" id="confirmCheckbox">
+          <span>Tôi đã đối chiếu với ảnh đơn gốc và hiểu rằng đây chỉ là bản demo.</span>
+        </label>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="saveCrosscheckBtn">Xác nhận và lưu</button>
+        </div>
+      </section>
+    </section>
+  </template>
+
+  <template id="chat-template">
+    <section class="page">
+      <section class="panel chat-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Symptom Chatbot</p>
+            <h3>Theo dõi triệu chứng trong bản demo</h3>
+          </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <div id="emergencyCard" class="emergency-card hidden">
+          <strong>Cần hỗ trợ khẩn cấp?</strong>
+          <p>Gọi 115 hoặc đến cơ sở cấp cứu gần nhất. Đây là nút demo, không tự động gọi.</p>
+          <button class="btn btn-danger" id="emergencyBtn">Hiển thị gợi ý cấp cứu</button>
+        </div>
+
+        <form id="chatForm" class="chat-input-row">
+          <input id="chatInput" type="text" placeholder="Ví dụ: hôm nay tôi đau đầu và buồn nôn">
+          <button class="btn btn-primary" type="submit">Gửi</button>
+        </form>
+      </section>
+    </section>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,18 +1,14 @@
-# MedReminder dependencies
+# MedReminder web demo dependencies
 
-# Core app
-kivy==2.3.0
-kivymd==1.2.0
+# Shared data / image generation
 Pillow>=10.0.0
-pygame>=2.0.0
 
-# AI prescription scanning
-langgraph>=0.2.0
-langchain-openai>=0.1.0
-langchain-core>=0.2.0
+# PaddleOCR
+paddleocr>=2.8.1
+paddlepaddle>=3.0.0
 python-dotenv>=1.0.0
-typing-extensions>=4.9.0
 
-# Android build tooling
-# Install on Linux/WSL only when building APKs.
-# buildozer>=1.5.0
+# Web demo
+fastapi>=0.110.0
+uvicorn>=0.27.0
+python-multipart>=0.0.9

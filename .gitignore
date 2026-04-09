@@ -18,7 +18,7 @@ env/
 .vscode/
 .DS_Store
 Thumbs.db
-
+.codex
 # Local app state
 .app_datetime
 .app_settings.json
