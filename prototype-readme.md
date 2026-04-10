@@ -18,9 +18,9 @@ MedReminder là ứng dụng nhắc nhở uống thuốc tích hợp AI, cho ph�
 
 | Loại | Link |
 |------|------|
-| GitHub Repository | *(điền link repo)* |
-| Demo Video | *(điền link video demo)* |
-| Figma Wireframes | *(điền link nếu có)* |
+| GitHub Repository | github.com/sonchemjo999/Nhom06-402-Day06 |
+| Demo Video |https://drive.google.com/file/d/1vSn_o7D9VCtaXQPb8AaF3af3_gzVc1IB/view?usp=sharing|
+| Figma Wireframes | https://canva.link/1uvwt55b8ju8fq1 |
 
 ---
 
